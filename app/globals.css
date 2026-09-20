@@ -1,0 +1,312 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-ps-jakarta);
+  --font-serif: var(--font-playfair);
+  --font-script: var(--font-great-vibes);
+
+  --color-ink-950: #16120e;
+  --color-ink-900: #1f1a15;
+  --color-ink-800: #2b251f;
+  --color-ink-700: #4a4038;
+  --color-ink-500: #8b8176;
+  --color-ink-400: #a89e92;
+  --color-ink-300: #c7bfb4;
+  --color-ink-200: #dfd8cd;
+  --color-ink-100: #ece7de;
+  --color-ivory-50: #fbf9f4;
+  --color-ivory-100: #f6f1e8;
+  --color-ivory-200: #efe7d9;
+  --color-ivory-300: #e4d9c6;
+
+  --color-gold-300: #ddc488;
+  --color-gold-400: #c9a95e;
+  --color-gold-500: #b08d42;
+  --color-gold-600: #94732f;
+  --color-gold-700: #775a24;
+
+  --color-wine-600: #7d3332;
+  --color-wine-700: #642a29;
+  --color-wine-800: #4d2020;
+
+  --color-sage-100: #eceded;
+  --color-sage-300: #bccdbe;
+  --color-sage-500: #7d9680;
+  --color-sage-700: #4e6250;
+
+  --color-blush-100: #f7ece6;
+  --color-blush-300: #eccfbf;
+  --color-blush-500: #d9a58c;
+  --color-blush-700: #a96f51;
+
+  --color-night-800: #1c2130;
+  --color-night-900: #141824;
+  --color-night-950: #0e111a;
+
+  --radius-xl2: 1.75rem;
+}
+
+:root {
+  --background: var(--color-ivory-50);
+  --foreground: var(--color-ink-900);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-ps-jakarta), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--color-gold-500);
+  color: #fff;
+}
+
+/* Slim elegant scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-ink-300);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-ink-500);
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+/* ---------- Animations ---------- */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes float-slow {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-12px);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgba(176, 141, 66, 0.35);
+  }
+  100% {
+    box-shadow: 0 0 0 16px rgba(176, 141, 66, 0);
+  }
+}
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.animate-fade-in {
+  animation: fade-in 0.7s ease both;
+}
+.animate-float-slow {
+  animation: float-slow 6s ease-in-out infinite;
+}
+.animate-pulse-ring {
+  animation: pulse-ring 2s cubic-bezier(0.66, 0, 0, 1) infinite;
+}
+.animate-marquee {
+  animation: marquee 40s linear infinite;
+}
+
+.delay-75 {
+  animation-delay: 75ms;
+}
+.delay-150 {
+  animation-delay: 150ms;
+}
+.delay-300 {
+  animation-delay: 300ms;
+}
+.delay-450 {
+  animation-delay: 450ms;
+}
+.delay-600 {
+  animation-delay: 600ms;
+}
+
+/* ---------- Components helpers ---------- */
+.text-balance {
+  text-wrap: balance;
+}
+.text-pretty {
+  text-wrap: pretty;
+}
+
+.card-subtle {
+  box-shadow:
+    0 1px 2px rgba(22, 18, 14, 0.04),
+    0 12px 32px -16px rgba(22, 18, 14, 0.12);
+}
+
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.12) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  background-size: 200% 0;
+  animation: shimmer 1.6s ease-in-out infinite;
+}
+
+/* Hide scrollbar for phone preview rail */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Inputs */
+.field {
+  width: 100%;
+  border-radius: 0.75rem;
+  border: 1px solid var(--color-ink-200);
+  background: #fff;
+  padding: 0.6rem 0.85rem;
+  font-size: 0.875rem;
+  color: var(--color-ink-900);
+  outline: none;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.field::placeholder {
+  color: var(--color-ink-400);
+}
+.field:focus {
+  border-color: var(--color-gold-500);
+  box-shadow: 0 0 0 3px rgba(176, 141, 66, 0.15);
+}
+.field[aria-invalid="true"] {
+  border-color: #c0392b;
+}
+select.field {
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238b8176' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  padding-right: 2.25rem;
+}
+
+.label {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--color-ink-700);
+  text-transform: uppercase;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 999px;
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  transition: all 0.18s ease;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.btn-primary {
+  background: var(--color-ink-900);
+  color: #fff;
+}
+.btn-primary:hover:not(:disabled) {
+  background: #000;
+  transform: translateY(-1px);
+}
+.btn-gold {
+  background: linear-gradient(135deg, var(--color-gold-400), var(--color-gold-600));
+  color: #fff;
+}
+.btn-gold:hover:not(:disabled) {
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+}
+.btn-outline {
+  border-color: var(--color-ink-200);
+  background: transparent;
+  color: var(--color-ink-900);
+}
+.btn-outline:hover:not(:disabled) {
+  border-color: var(--color-ink-400);
+  background: var(--color-ivory-100);
+}
+.btn-ghost {
+  background: transparent;
+  color: var(--color-ink-700);
+}
+.btn-ghost:hover:not(:disabled) {
+  background: var(--color-ivory-100);
+  color: var(--color-ink-900);
+}
+
+/* Invitation theme primitives (theme sets these vars via inline style) */
+.inv-cover {
+  background: var(--inv-cover-bg, #171310);
+  color: var(--inv-cover-fg, #fff);
+}
