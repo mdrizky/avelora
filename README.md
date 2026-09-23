@@ -1,145 +1,177 @@
-# AVELORA — Digital Invitation & Event Platform
+# AVELORA
 
-Platform undangan digital + manajemen acara (RSVP, buku tamu, QR check-in, analitik, templat, editor live, billing, dan panel admin). Dibangun dengan **Next.js 16 (App Router) + React 19 + Tailwind CSS v4**, data-first lokal, dan siap dicolokkan ke **Supabase/Postgres**.
+Platform undangan digital dan manajemen acara: RSVP, buku tamu, QR check-in, analitik, templat, editor live, billing demo, dan panel admin.
 
----
+Teknologi: **Next.js 16 App Router, React 19, TypeScript, Tailwind CSS v4, dan Supabase PostgreSQL**.
 
-## Mulai cepat
+## Penting: penyebab error di SQL Editor
+
+Jangan tempel isi `lib/db/stores/supabase.ts` ke Supabase SQL Editor. File itu adalah kode TypeScript yang dijalankan oleh server Next.js. Itulah sebabnya Supabase menampilkan error pada:
+
+```text
+import "server-only";
+```
+
+Yang boleh ditempel dan dijalankan di SQL Editor hanya isi file [`supabase/schema.sql`](supabase/schema.sql). Setelah tabel selesai dibuat, aplikasi memakai `@supabase/supabase-js` dari sisi server untuk membaca dan menulis data.
+
+## Menjalankan lokal
+
+Prasyarat: Node.js 20.6 atau lebih baru.
 
 ```bash
 npm install
-npm run dev        # http://localhost:3000
+copy .env.local.example .env.local
+npm run dev
 ```
 
-> Next.js 16 di sini punya API berbeda dari versi lama (params/searchParams async, dsb.). Saat memodifikasi kode, patuhi panduan `node_modules/next/dist/docs/`.
+Buka `http://localhost:3000`.
+
+Tanpa perubahan env, aplikasi memakai database lokal di `.data/db.json`. File tersebut dibuat otomatis saat aplikasi pertama kali berjalan dan berisi seed demo.
 
 ### Akun demo
 
 | Akun | Email | Sandi | Peran |
 |---|---|---|---|
-| Host | `demo@avelora.id` | `demo123` | user (3 undangan contoh) |
+| Host | `demo@avelora.id` | `demo123` | user |
 | Admin | `admin@avelora.id` | `admin123` | admin |
 
-Undangan publik contoh: `/ahmad-sarah` (publish), `/aqiqah-rayyan` (publish + Event Memory), `/naura-birthday` (draft). Personalisasi tamu: `/ahmad-sarah?to=budi-santoso`.
+Contoh URL: `/ahmad-sarah` (publish), `/aqiqah-rayyan` (publish + Event Memory), `/naura-birthday` (draft). Personalisasi tamu: `/ahmad-sarah?to=budi-santoso`.
 
----
+## Mengaktifkan Supabase
 
-## Di mana database-nya?
+Supabase adalah database online. Agar aplikasi juga bisa diakses publik, aplikasi Next.js tetap perlu dideploy ke Vercel atau hosting Node.js lain.
 
-Ada **dua mode penyimpanan**, dipilih lewat env `DATABASE_STORE`:
+### 1. Buat project dan tabel
 
-1. **`local` (default)** — file JSON di **`C:\Projects\avelora\.data\db.json`**.
-   - Dibuat otomatis saat server pertama kali berjalan (diisi seed bawaan).
-   - Semua tulis disimpan debounced 400 ms ke berkas ini.
+1. Buat project di [supabase.com](https://supabase.com).
+2. Buka **SQL Editor**.
+3. Buka file [`supabase/schema.sql`](supabase/schema.sql) di repo, salin seluruh isinya, tempel ke SQL Editor, lalu klik **Run**.
+4. Pastikan query selesai tanpa error dan tabel Avelora terlihat di **Table Editor**.
 
-2. **`supabase`** — Postgres di project Supabase Anda (lihat bagian "Migrasi ke Supabase").
-   - Setiap perubahan tetap tersimpan di memori lalu disinkronkan (upsert per koleksi) ke tabel Postgres.
+Jangan menjalankan `supabase.ts` di SQL Editor. File itu tetap berada di repo.
 
-Ketiga sistem (repo, route, UI) **tidak berubah** apa pun modenya — hanya backend penyimpanan yang diganti di `lib/db/store.ts` (`stores/local.ts` vs `stores/supabase.ts`).
+### 2. Isi kredensial server
 
----
+Salin `.env.local.example` menjadi `.env.local`, lalu isi:
 
-## Struktur data
+```env
+DATABASE_STORE=supabase
+SUPABASE_URL=https://project-ref.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=eyJ...
+AUTH_SECRET=ganti-dengan-string-acak-minimal-32-karakter
+```
 
-Skema 1:1 dengan PRD & tipe di `lib/db/types.ts`:
+`SUPABASE_URL` dan `SUPABASE_SERVICE_ROLE_KEY` tersedia di **Project Settings → API**. Gunakan `service_role` hanya di server. Jangan beri nama variabel ini dengan awalan `NEXT_PUBLIC_`, jangan commit `.env.local`, dan jangan menaruh key tersebut di komponen client.
 
-- Master: `profiles`, `event_categories`, `templates`, `music_tracks`, `plans`, `coupons`
-- Undangan: `invitations` (`content_data`/`theme_config` jsonb), `event_schedules`, `gallery_images`, `gift_accounts`
-- Tamu & interaksi: `guests`, `guest_rsvps`, `guest_messages`, `seating_tables`, `checkins`, `analytics_events`
-- Billing & ops: `subscriptions`, `orders`, `notifications`, `audit_logs`
-- Konten publik: `testimonials`, `faqs`
-- Token: `password_resets`, `verify_tokens`
+### 3. Pindahkan seed lokal ke Supabase
 
-DDL lengkap (relasional + indeks + RLS): **`supabase/schema.sql`**.
+Jika ingin memakai data demo/lokal yang sudah ada:
 
----
+```bash
+npm run db:export
+npm run db:import:dry
+npm run db:import
+```
 
-## Migrasi ke Supabase
+`db:export` membuat `supabase/seed-data.json` dari `.data/db.json`. Import melakukan upsert dan, secara default, menghapus baris yang tidak ada di seed. Untuk mempertahankan baris yang sudah ada di Supabase, gunakan:
 
-1. **Buat project** di [supabase.com](https://supabase.com) (berbayar/free tier bebas).
-2. **Jalankan skema**: buka `supabase/schema.sql`, tempel isinya ke **SQL Editor** project Anda, jalankan.
-3. **Ambil kredensial**: Project Settings → API → salin **Project URL** dan **`service_role`** key.
-4. **Isi env**: salin `.env.local.example` → `.env.local`:
+```bash
+node scripts/import-to-supabase.mjs --keep
+```
 
-   ```env
-   DATABASE_STORE=supabase
-   SUPABASE_URL=https://xxxx.supabase.co
-   SUPABASE_SERVICE_ROLE_KEY=eyJ...
-   ```
+Jika tidak punya data lokal, cukup jalankan `npm run db:export` setelah aplikasi lokal pernah dijalankan, lalu lakukan import.
 
-   > `service_role` = kunci server-only. Jangan pernah diletakkan di kode client.
+### 4. Jalankan dan verifikasi
 
-5. **Ekspor & impor data lokal Anda**:
+```bash
+npm run dev
+```
 
-   ```bash
-   npm run db:export      # .data/db.json -> supabase/seed-data.json
-   npm run db:import      # seed-data.json -> tabel Supabase (upsert + hapus yg tak ada)
-   npm run db:import:dry  # pratinjau rencana import tanpa mengeksekusi
-   ```
+Log yang benar:
 
-6. **Jalankan**:
+```text
+[avelora:db] Supabase siap. Total N baris di 24 tabel.
+```
 
-   ```bash
-   npm run dev
-   ```
+Uji login, buka `/ahmad-sarah`, kirim RSVP, lalu cek tabel terkait di Supabase Table Editor. Jika env Supabase salah atau tabel belum dibuat, aplikasi memakai seed lokal dalam mode degraded dan menulis peringatan di terminal.
 
-   Log saat boot menampilkan `[avelora:db] Supabase siap. Total N baris …`.
-   Jika Supabase tidak terjangkau, aplikasi jatuh ke **mode degradasi** (memakai seed lokal) dengan peringatan jelas di log.
+## Deploy online
 
-Skrip lain: `npm run db:reset` menghapus `db.json` sehingga di-reseed saat server di-restart.
+Contoh menggunakan Vercel:
 
----
+1. Push repo ke GitHub.
+2. Import repository di [vercel.com](https://vercel.com).
+3. Di **Project Settings → Environment Variables**, tambahkan `DATABASE_STORE`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, dan `AUTH_SECRET` untuk environment yang dipakai.
+4. Deploy ulang setelah semua env tersimpan.
+5. Buka URL deployment dan verifikasi login, undangan publik, RSVP, serta dashboard.
 
-## Skrip
+Supabase hanya menyediakan database; Supabase tidak otomatis menjalankan server Next.js. Gunakan **service role key** sebagai environment variable server pada hosting, bukan sebagai `NEXT_PUBLIC_*`.
+
+## Mode penyimpanan
+
+`lib/db/store.ts` memilih backend berdasarkan env:
+
+- `DATABASE_STORE=local`: `.data/db.json`, cocok untuk demo/development.
+- `DATABASE_STORE=supabase` dengan dua credential lengkap: Postgres Supabase.
+- `DATABASE_STORE=supabase` tanpa credential lengkap: fallback lokal dengan warning.
+
+Backend Supabase memuat seluruh koleksi ke memory saat boot, lalu menyinkronkan perubahan dengan debounce. Model ini cocok untuk demo atau satu instance. Untuk multi-instance production dengan trafik besar, repository perlu diubah menjadi operasi async per baris/transaksi.
+
+## Struktur database
+
+Skema relasional lengkap, index, foreign key, dan RLS ada di [`supabase/schema.sql`](supabase/schema.sql). Koleksi aplikasi:
+
+- Master: `profiles`, `event_categories`, `templates`, `music_tracks`, `plans`, `coupons`.
+- Undangan: `invitations`, `event_schedules`, `gallery_images`, `gift_accounts`.
+- Tamu/interaksi: `guests`, `guest_rsvps`, `guest_messages`, `seating_tables`, `checkins`, `analytics_events`.
+- Billing/operasional: `subscriptions`, `orders`, `notifications`, `audit_logs`.
+- Konten publik: `testimonials`, `faqs`.
+- Token: `password_resets`, `verify_tokens`.
+
+## Fitur MVP
+
+- Halaman publik, lima kategori acara, templat, pricing, galeri, jadwal, peta, musik, amplop/kado, Event Memory, dan personalisasi `?to=<guest-slug>`.
+- RSVP, buku tamu dengan moderasi, analytics view, rate limit, deteksi device/browser, dan notifikasi host.
+- Register, login, logout, verifikasi email demo, lupa/reset password, dan sesi cookie HMAC.
+- Dashboard host: editor live, publish, guests, seating, buku tamu, analytics, QR check-in, billing simulasi, profil, dan password.
+- Admin: statistik, pengaturan templat/paket/testimoni/musik, dan moderasi buku tamu lintas undangan.
+
+Pembayaran dan pengiriman email belum terhubung ke provider eksternal; keduanya masih alur demo berbasis database.
+
+## Perintah
 
 | Perintah | Fungsi |
 |---|---|
-| `npm run dev` | Dev server (hot reload) |
-| `npm run build` | Production build |
-| `npm run start` | Jalankan build (parameter port: `npm start -- -p 3100`) |
-| `npm run lint` | ESLint |
-| `npx tsc --noEmit` | Type check |
-| `npm run db:export` | Ekspor DB lokal → `supabase/seed-data.json` |
-| `npm run db:import` | Import seed → Supabase |
-| `npm run db:import:dry` | Pratinjau import |
-| `npm run db:reset` | Reset DB lokal ke seed murni (restart server setelahnya) |
-
----
-
-## Fitur (100% MVP)
-
-**Publik**
-- Landing (`/`), templat (`/templates`), harga (`/pricing`), undangan publik `/[slug]` dengan 5 kategori (Pernikahan, Aqiqah, Khitanan, Ulang Tahun, Wisuda), personalisasi `?to=<guest-slug>`, buku tamu, RSVP, amplop/kado, jadwal + peta, galeri, memori acara untuk undangan yang sudah lewat, musik (`track_id`), waterfall greeting.
-
-**Guest flow (API ber-rate-limit + deteksi device/browser)**
-- `POST /api/rsvp` (cari/buat tamu, konfirmasi, notifikasi ke pemilik)
-- `POST /api/messages` (mode moderasi sesuai `auto_approve`, notifikasi)
-- `POST /api/track` (analitik kunjungan, visitor-hash)
-
-**Autentikasi**
-- Daftar, masuk, keluar, lupa sandi & reset (token tersimpan di DB; tanpa SMTP — demo), verifikasi email (token).
-
-**Dashboard host** (per undangan)
-- Ringkasan & statistik, editor live (autosave, publish, tautan salin, hapus, preview ponsel), Tamu (import massal, cari, meja, tautan pribadi), Buku Tamu (moderasi + semat), Analitik 7 hari (device/browser), Seating (denah + penempatan), Check-in (cari/QR tamu, fitur QR premium).
-- Billing (paket & aktivasi simulasi; tanpa payment gateway — demo), profil & sandi.
-
-**Admin**
-- Statistik platform, toggle templat/paket/testimoni, atur URL audio musik berlisensi, moderasi buku tamu lintas-undangan. (Route `/admin` hanya untuk peran `admin`.)
-
----
-
-## Keamanan & model data
-
-- Sesuai Next 16: `params`/`searchParams`/`cookies()` async; `useSearchParams` di dalam `<Suspense>`; rate-limit di server (`server-only`); halaman publik `noindex`.
-- Sesi = cookie HMAC-signed (AUTH_SECRET) — tanpa tabel sesi.
-- Kunci `service_role` hanya dipakai sisi server (mode Supabase); RLS aktif di semua tabel `supabase/schema.sql`.
-- `GET /api/messages`, `GET /api/notifications`, `PATCH/DELETE /api/messages/[id]`, dsb. dilindungi owner/admin.
-
----
+| `npm run dev` | Menjalankan development server |
+| `npm run build` | Membuat production build |
+| `npm run start` | Menjalankan production build |
+| `npm run lint` | Menjalankan ESLint |
+| `npm test` | Menjalankan API tests |
+| `npx tsc --noEmit` | Type check TypeScript |
+| `npm run db:export` | Ekspor `.data/db.json` ke `supabase/seed-data.json` |
+| `npm run db:import` | Import seed ke Supabase dan mirror koleksi |
+| `npm run db:import:dry` | Melihat rencana import tanpa menulis |
+| `npm run db:reset` | Menghapus database lokal agar dibuat ulang dari seed |
+| `npm run db:validate` | Memvalidasi seed |
 
 ## Troubleshooting
 
-- **`DATABASE_STORE=supabase` tanpa kunci** → jatuh ke penyimpanan lokal dengan peringatan di log.
-- **Import gagal sebagian** → ada baris yang tidak lolos tipe kolom (mis. angka/boolean salah). Periksa `supabase/schema.sql` dan pesan error `XX  <tabel>` di log import.
-- **Build di mesin tanpa env** → mode lokal default; tidak butuh Supabase saat `npm run build`.
-- **Satu kejadian perubahan menyinkronkan semua koleksi** (model snapshot single-instance) — cukup untuk demo; untuk multi-instance produksi, pindahkan ke repository async per-row.
+### `syntax error at or near "server-only"`
+
+Kode TypeScript masuk ke SQL Editor. Hapus query tersebut dan jalankan hanya [`supabase/schema.sql`](supabase/schema.sql).
+
+### `DATABASE_STORE=supabase` tetapi masih memakai lokal
+
+Pastikan `.env.local` berada di root repo, nama variabel tepat, tidak ada tanda kutip aneh, lalu restart `npm run dev`. `SUPABASE_SERVICE_ROLE_KEY` wajib terisi.
+
+### Import gagal
+
+Pastikan schema sudah dijalankan lebih dulu, `SUPABASE_URL` dan `SUPABASE_SERVICE_ROLE_KEY` benar, lalu jalankan `npm run db:import:dry`. Pesan `XX <tabel>` menunjukkan tabel yang gagal.
+
+### Database Supabase kosong
+
+Schema hanya membuat tabel. Jalankan `npm run db:export` lalu `npm run db:import` untuk memasukkan data demo.
+
+### Next.js 16
+
+Saat memodifikasi kode, ikuti dokumentasi lokal di `node_modules/next/dist/docs/`. `params`, `searchParams`, dan `cookies()` pada App Router versi ini bersifat async.
