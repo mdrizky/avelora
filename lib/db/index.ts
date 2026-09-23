@@ -7,6 +7,7 @@ import type {
   InvitationStatus,
   Profile,
   RsvpStatus,
+  Template,
 } from "./types";
 import { getData, mutate, uid } from "./store";
 
@@ -639,6 +640,54 @@ export function setMusicAudio(id: string, audio_url: string) {
     const m = d.music_tracks.find((x) => x.id === id);
     if (m) m.audio_url = audio_url;
   });
+}
+
+export function createTemplate(input: {
+  name: string;
+  slug: string;
+  category_id: string;
+  thumbnail_url?: string;
+  is_premium?: boolean;
+  price?: number;
+}): Template {
+  const now = new Date().toISOString();
+  const template: Template = {
+    id: `tpl-${uid()}`,
+    name: input.name.trim(),
+    slug: `${input.slug.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}-${Date.now().toString(36)}`,
+    category_id: input.category_id,
+    thumbnail_url: input.thumbnail_url?.trim() || "",
+    theme_config: {
+      name: input.name.trim(),
+      palette: {
+        name: "Avelora Gold",
+        background: "#fbf8f2",
+        foreground: "#201c19",
+        primary: "#b6923f",
+        accent: "#d6b86a",
+        soft: "#f1e8d4",
+        muted: "#8c837b",
+      },
+      font: "serif",
+      layout: "classic",
+      animation: "subtle",
+    },
+    is_premium: input.is_premium ?? false,
+    price: input.price ?? 0,
+    is_active: true,
+    created_by: "u-admin",
+    created_at: now,
+  };
+  mutate((d) => d.templates.push(template));
+  return template;
+}
+
+export function setUserSuspended(userId: string, suspended: boolean) {
+  mutate((d) => {
+    const user = d.profiles.find((profile) => profile.id === userId);
+    if (user && user.role !== "admin") user.is_suspended = suspended;
+  });
+  return getUserById(userId);
 }
 
 export function listAllMessages(status?: "pending" | "approved" | "all") {

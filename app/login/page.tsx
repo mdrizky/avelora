@@ -5,7 +5,7 @@ import { getSessionUser } from "@/lib/auth/session";
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string; reset?: string }> }) {
   const [user, params] = await Promise.all([getSessionUser(), searchParams]);
-  if (user) redirect("/dashboard");
+  if (user) redirect(user.role === "admin" ? "/admin" : "/dashboard");
 
   return (
     <AuthShell

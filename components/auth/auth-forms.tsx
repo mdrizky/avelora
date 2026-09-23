@@ -65,7 +65,7 @@ export function LoginForm({ next }: { next?: string }) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Gagal masuk");
-      router.push(next || "/dashboard");
+      router.push(next || (data.user?.role === "admin" ? "/admin" : "/dashboard"));
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Terjadi kesalahan");

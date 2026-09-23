@@ -1,16 +1,18 @@
 
-import { getData, listAllMessages, rsvpStats, listPlans, getSubscription } from "@/lib/db";
-import { requireUser } from "@/lib/auth/session";
-import { redirect } from "next/navigation";
+import { getData, listAllMessages, listCategories, rsvpStats, listPlans, getSubscription } from "@/lib/db";
+import { requireAdmin } from "@/lib/auth/session";
+import { AdminActionButton, AdminTemplateForm } from "@/components/admin/admin-controls";
 
 export default async function AdminPage() {
-  const user = await requireUser();
-  if (user.role !== "admin") redirect("/dashboard");
+  const user = await requireAdmin();
   const data = getData();
   const pendingMessages = listAllMessages("pending");
   const users = getData().profiles;
   const plans = listPlans();
   const invitations = getData().invitations;
+  const categories = listCategories();
+  const analytics = data.analytics_events;
+  const auditLogs = data.audit_logs.slice(0, 10);
   const invStats = data.invitations.reduce(
     (acc, inv) => {
       const _s = rsvpStats(inv.id);
@@ -45,6 +47,10 @@ export default async function AdminPage() {
           <p className="text-xs font-semibold uppercase tracking-wide text-ink-400">Konfirmasi Hadir</p>
           <p className="mt-1 text-2xl font-extrabold text-ink-900">{invStats.attending}</p>
         </div>
+        <div className="rounded-2xl border border-ink-200 bg-white p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-ink-400">Aktivitas publik</p>
+          <p className="mt-1 text-2xl font-extrabold text-ink-900">{analytics.length}</p>
+        </div>
       </div>
       <section className="rounded-2xl border border-ink-200 bg-white p-6">
         <h2 className="text-lg font-extrabold mb-4">Manajemen Pengguna</h2>
@@ -77,7 +83,7 @@ export default async function AdminPage() {
                       <span className={"rounded-full px-2 py-0.5 text-xs font-bold " + (u.is_suspended ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700")}>{u.is_suspended ? "Suspended" : "Active"}</span>
                     </td>
                     <td className="p-3">
-                      <button className="px-2 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600">Hapus</button>
+                      {u.role === "user" && <AdminActionButton type="suspend_user" id={u.id} active={!u.is_suspended} label={u.is_suspended ? "Aktifkan" : "Nonaktifkan"} />}
                     </td>
                   </tr>
                 )
@@ -98,6 +104,7 @@ export default async function AdminPage() {
                 <th className="text-left p-3 text-xs font-medium text-ink-400">Owner</th>
                 <th className="text-left p-3 text-xs font-medium text-ink-400">Tamu</th>
                 <th className="text-left p-3 text-xs font-medium text-ink-400">Tanggal</th>
+                <th className="text-left p-3 text-xs font-medium text-ink-400">Aksi</th>
               </tr>
             </thead>
             <tbody>
@@ -115,6 +122,7 @@ export default async function AdminPage() {
                     <td className="p-3">{owner?.first_name ?? "-"} {owner?.last_name ?? ""}</td>
                     <td className="p-3">{data.guests.filter((g) => g.invitation_id === inv.id).length}</td>
                     <td className="p-3">{inv.event_date ? new Date(inv.event_date).toLocaleDateString("id-ID") : "-"}</td>
+                    <td className="p-3"><AdminActionButton type="delete_invitation" id={inv.id} label="Hapus" /></td>
                   </tr>
                 )
               })}
@@ -124,6 +132,7 @@ export default async function AdminPage() {
       </section>
       <section className="rounded-2xl border border-ink-200 bg-white p-6">
         <h2 className="text-lg font-extrabold mb-4">Template & Paket</h2>
+        <AdminTemplateForm categories={categories} />
         <div className="grid gap-4 md:grid-cols-2">
           <div>
             <h3 className="font-semibold mb-2">Template ({data.templates.length})</h3>
@@ -148,6 +157,19 @@ export default async function AdminPage() {
             </div>
           </div>
         </div>
+      </section>
+      <section className="rounded-2xl border border-ink-200 bg-white p-6">
+        <h2 className="text-lg font-extrabold mb-4">Aktivitas Sistem Terbaru</h2>
+        {auditLogs.length > 0 ? (
+          <div className="space-y-2">
+            {auditLogs.map((log) => (
+              <div key={log.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-ink-100 px-3 py-2 text-sm">
+                <span><strong>{log.action}</strong> · {log.entity_type} {log.entity_id ?? ""}</span>
+                <span className="text-xs text-ink-400">{new Date(log.created_at).toLocaleString("id-ID")}</span>
+              </div>
+            ))}
+          </div>
+        ) : <p className="text-ink-400">Belum ada aktivitas.</p>}
       </section>
       <section className="rounded-2xl border border-ink-200 bg-white p-6">
         <h2 className="text-lg font-extrabold mb-4">Pesan Menunggu Moderasi ({pendingMessages.length})</h2>

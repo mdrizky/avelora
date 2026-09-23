@@ -2,17 +2,19 @@ import Link from "next/link";
 import { Bell } from "lucide-react";
 import { DashboardMobileNav, DashboardSidebar } from "@/components/dashboard/sidebar";
 import { requireUser } from "@/lib/auth/session";
+import { redirect } from "next/navigation";
 import { unreadNotifications } from "@/lib/db";
 import { Logo } from "@/components/logo";
 import { LogOut } from "lucide-react";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();
+  if (user.role === "admin") redirect("/admin");
   const unread = unreadNotifications(user.id);
 
   return (
     <div className="flex min-h-screen bg-ivory-50">
-      <DashboardSidebar isAdmin={user.role === "admin"} />
+      <DashboardSidebar isAdmin={false} />
       <div className="flex min-w-0 flex-1 flex-col pb-16 lg:pb-0">
         <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-ink-100 bg-ivory-50/90 px-4 backdrop-blur sm:px-6">
           <div className="lg:hidden">
@@ -50,7 +52,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         </header>
         <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 sm:px-6">{children}</main>
       </div>
-      <DashboardMobileNav isAdmin={user.role === "admin"} />
+      <DashboardMobileNav isAdmin={false} />
     </div>
   );
 }
