@@ -373,6 +373,13 @@ alter table public.avelora_meta      enable row level security;
 
 -- Policy dasar untuk autentikasi Supabase (jika dipakai client-side).
 -- Aplikasi tetap memakai service_role sehingga policy ini opsional.
+drop policy if exists "public content readable" on public.templates;
+drop policy if exists "public content readable" on public.event_categories;
+drop policy if exists "public content readable" on public.music_tracks;
+drop policy if exists "public content readable" on public.plans;
+drop policy if exists "public content readable" on public.testimonials;
+drop policy if exists "public content readable" on public.faqs;
+
 create policy "public content readable" on public.templates for select using (true);
 create policy "public content readable" on public.event_categories for select using (true);
 create policy "public content readable" on public.music_tracks for select using (true);
