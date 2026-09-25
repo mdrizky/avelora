@@ -1,0 +1,11 @@
+import { TicketPercent } from "lucide-react";
+import { CouponForm } from "@/components/admin/coupon-form";
+import { StatusBadge } from "@/components/admin/status-badge";
+import { requireAdmin } from "@/lib/auth/session";
+import { getData } from "@/lib/db";
+
+export default async function AdminCouponsPage() {
+  await requireAdmin();
+  const coupons = getData().coupons;
+  return <div className="space-y-6"><div><p className="text-xs font-bold uppercase tracking-[0.18em] text-gold-600">Promotion control</p><h1 className="mt-2 flex items-center gap-2 text-3xl font-extrabold tracking-tight text-ink-900"><TicketPercent size={28} className="text-gold-500" /> Kupon & Promo</h1><p className="mt-2 text-sm text-ink-500">Buat dan pantau kode promo untuk pengguna.</p></div><div className="rounded-2xl border border-ink-100 bg-white p-5 shadow-sm"><h2 className="mb-4 font-extrabold text-ink-900">Buat kupon</h2><CouponForm /></div><div className="overflow-x-auto rounded-2xl border border-ink-100 bg-white shadow-sm"><table className="w-full min-w-[700px] text-left"><thead className="bg-[#fbfaf7] text-xs uppercase tracking-wider text-ink-400"><tr><th className="px-5 py-3">Kode</th><th className="px-4 py-3">Diskon</th><th className="px-4 py-3">Terpakai</th><th className="px-4 py-3">Berlaku sampai</th><th className="px-5 py-3">Status</th></tr></thead><tbody className="divide-y divide-ink-100">{coupons.map((coupon) => <tr key={coupon.id}><td className="px-5 py-4 font-mono font-bold">{coupon.code}</td><td className="px-4 py-4 text-sm">{coupon.discount_type === "percent" ? `${coupon.discount_value}%` : `Rp ${coupon.discount_value.toLocaleString("id-ID")}`}</td><td className="px-4 py-4 text-sm">{coupon.used_count} / {coupon.quota}</td><td className="px-4 py-4 text-sm text-ink-500">{coupon.expires_at ? new Date(coupon.expires_at).toLocaleDateString("id-ID") : "Tanpa batas"}</td><td className="px-5 py-4"><StatusBadge tone={coupon.is_active ? "active" : "pending"}>{coupon.is_active ? "Aktif" : "Nonaktif"}</StatusBadge></td></tr>)}</tbody></table></div></div>;
+}

@@ -1,198 +1,60 @@
-
-import { getData, listAllMessages, listCategories, rsvpStats, listPlans, getSubscription } from "@/lib/db";
-import { requireAdmin } from "@/lib/auth/session";
+import { Activity, ArrowUpRight, CheckCircle2, FileText, LayoutGrid, MessageSquare, MoreHorizontal, ShieldCheck, Sparkles, Users } from "lucide-react";
 import { AdminActionButton, AdminTemplateForm } from "@/components/admin/admin-controls";
+import { requireAdmin } from "@/lib/auth/session";
+import { getData, getSubscription, listAllMessages, listCategories, listPlans, rsvpStats } from "@/lib/db";
+
+const statusTone: Record<string, string> = {
+  published: "bg-emerald-50 text-emerald-700",
+  draft: "bg-ink-100 text-ink-500",
+  memory: "bg-violet-50 text-violet-700",
+  expired: "bg-red-50 text-red-600",
+};
 
 export default async function AdminPage() {
   const user = await requireAdmin();
   const data = getData();
-  const pendingMessages = listAllMessages("pending");
-  const users = getData().profiles;
-  const plans = listPlans();
-  const invitations = getData().invitations;
+  const users = data.profiles;
+  const invitations = data.invitations;
   const categories = listCategories();
-  const analytics = data.analytics_events;
-  const auditLogs = data.audit_logs.slice(0, 10);
-  const invStats = data.invitations.reduce(
-    (acc, inv) => {
-      const _s = rsvpStats(inv.id);
-      acc.totalInvites += 1;
-      acc.attending += _s.counts.attending;
-      return acc;
-    },
-    { totalInvites: 0, attending: 0 }
-  );
+  const plans = listPlans();
+  const pendingMessages = listAllMessages("pending");
+  const auditLogs = data.audit_logs.slice(0, 8);
+  const attending = invitations.reduce((total, invitation) => total + rsvpStats(invitation.id).counts.attending, 0);
+  const published = invitations.filter((invitation) => invitation.status === "published").length;
+  const metrics = [
+    ["Total pengguna", users.length, `${users.filter((item) => item.role === "user").length} akun user`, Users, "text-blue-600 bg-blue-50"],
+    ["Undangan aktif", published, `${invitations.length} total dibuat`, FileText, "text-gold-600 bg-gold-100"],
+    ["Total tamu", data.guests.length, `${attending} konfirmasi hadir`, CheckCircle2, "text-emerald-600 bg-emerald-50"],
+    ["Aktivitas publik", data.analytics_events.length, "event tercatat", Activity, "text-violet-600 bg-violet-50"],
+  ] as const;
+
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between gap-3">
+    <div className="space-y-8" id="overview">
+      <section className="flex flex-col justify-between gap-5 rounded-2xl bg-night-900 px-6 py-7 text-white shadow-xl shadow-night-900/10 sm:flex-row sm:items-end sm:px-8">
         <div>
-          <h1 className="text-xl font-extrabold text-ink-900">Panel Admin AVELORA</h1>
-          <p className="text-xs text-ink-400">Selamat Datang, {user.first_name} (admin)</p>
+          <p className="text-sm font-medium text-gold-300">Selamat datang kembali, {user.first_name}</p>
+          <h2 className="mt-2 max-w-xl text-3xl font-extrabold tracking-tight sm:text-4xl">Semua yang terjadi di AVELORA, dalam satu pandangan.</h2>
+          <p className="mt-3 max-w-lg text-sm leading-6 text-white/60">Pantau pengguna, undangan, konten, dan aktivitas platform dari pusat kendali admin.</p>
         </div>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="rounded-2xl border border-ink-200 bg-white p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-ink-400">Total Pengguna</p>
-          <p className="mt-1 text-2xl font-extrabold text-ink-900">{users.length}</p>
-        </div>
-        <div className="rounded-2xl border border-ink-200 bg-white p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-ink-400">Undangan Aktif</p>
-          <p className="mt-1 text-2xl font-extrabold text-ink-900">{data.invitations.length}</p>
-        </div>
-        <div className="rounded-2xl border border-ink-200 bg-white p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-ink-400">Total Tamu</p>
-          <p className="mt-1 text-2xl font-extrabold text-ink-900">{data.guests.length}</p>
-        </div>
-        <div className="rounded-2xl border border-ink-200 bg-white p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-ink-400">Konfirmasi Hadir</p>
-          <p className="mt-1 text-2xl font-extrabold text-ink-900">{invStats.attending}</p>
-        </div>
-        <div className="rounded-2xl border border-ink-200 bg-white p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-ink-400">Aktivitas publik</p>
-          <p className="mt-1 text-2xl font-extrabold text-ink-900">{analytics.length}</p>
-        </div>
-      </div>
-      <section className="rounded-2xl border border-ink-200 bg-white p-6">
-        <h2 className="text-lg font-extrabold mb-4">Manajemen Pengguna</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-ink-200">
-                <th className="text-left p-3 text-xs font-medium text-ink-400">Nama</th>
-                <th className="text-left p-3 text-xs font-medium text-ink-400">Email</th>
-                <th className="text-left p-3 text-xs font-medium text-ink-400">Peran</th>
-                <th className="text-left p-3 text-xs font-medium text-ink-400">Plan</th>
-                <th className="text-left p-3 text-xs font-medium text-ink-400">Undangan</th>
-                <th className="text-left p-3 text-xs font-medium text-ink-400">Status</th>
-                <th className="text-left p-3 text-xs font-medium text-ink-400">Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((u) => {
-                const sub = getSubscription(u.id);
-                return (
-                  <tr key={u.id} className="border-b border-ink-100 hover:bg-ink-50">
-                    <td className="p-3">{u.first_name} {u.last_name}</td>
-                    <td className="p-3">{u.email}</td>
-                    <td className="p-3">
-                      <span className={"rounded-full px-2 py-0.5 text-xs font-bold " + (u.role === "admin" ? "bg-gold-100 text-gold-700" : "bg-ink-100 text-ink-500")}>{u.role}</span>
-                    </td>
-                    <td className="p-3">{sub?.plan_id ?? "Free"}</td>
-                    <td className="p-3">{data.invitations.filter((inv) => inv.owner_id === u.id).length}</td>
-                    <td className="p-3">
-                      <span className={"rounded-full px-2 py-0.5 text-xs font-bold " + (u.is_suspended ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700")}>{u.is_suspended ? "Suspended" : "Active"}</span>
-                    </td>
-                    <td className="p-3">
-                      {u.role === "user" && <AdminActionButton type="suspend_user" id={u.id} active={!u.is_suspended} label={u.is_suspended ? "Aktifkan" : "Nonaktifkan"} />}
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
+        <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-xs text-white/70"><ShieldCheck size={17} className="text-gold-300" /> Sistem terlindungi</div>
       </section>
-      <section className="rounded-2xl border border-ink-200 bg-white p-6">
-        <h2 className="text-lg font-extrabold mb-4">Semua Undangan</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-ink-200">
-                <th className="text-left p-3 text-xs font-medium text-ink-400">Slug</th>
-                <th className="text-left p-3 text-xs font-medium text-ink-400">Judul</th>
-                <th className="text-left p-3 text-xs font-medium text-ink-400">Status</th>
-                <th className="text-left p-3 text-xs font-medium text-ink-400">Owner</th>
-                <th className="text-left p-3 text-xs font-medium text-ink-400">Tamu</th>
-                <th className="text-left p-3 text-xs font-medium text-ink-400">Tanggal</th>
-                <th className="text-left p-3 text-xs font-medium text-ink-400">Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {invitations.map((inv) => {
-                const owner = data.profiles.find((p) => p.id === inv.owner_id);
-                return (
-                  <tr key={inv.id} className="border-b border-ink-100 hover:bg-ink-50">
-                    <td className="p-3">
-                      <a href={"/" + inv.slug} className="text-gold-600 hover:underline" target="_blank">{inv.slug}</a>
-                    </td>
-                    <td className="p-3">{inv.title}</td>
-                    <td className="p-3">
-                      <span className={"rounded-full px-2 py-0.5 text-xs font-bold " + (inv.status === "published" ? "bg-green-100 text-green-700" : inv.status === "draft" ? "bg-ink-100 text-ink-500" : inv.status === "memory" ? "bg-purple-100 text-purple-700" : "bg-red-100 text-red-700")}>{inv.status}</span>
-                    </td>
-                    <td className="p-3">{owner?.first_name ?? "-"} {owner?.last_name ?? ""}</td>
-                    <td className="p-3">{data.guests.filter((g) => g.invitation_id === inv.id).length}</td>
-                    <td className="p-3">{inv.event_date ? new Date(inv.event_date).toLocaleDateString("id-ID") : "-"}</td>
-                    <td className="p-3"><AdminActionButton type="delete_invitation" id={inv.id} label="Hapus" /></td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
+
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {metrics.map(([label, value, detail, Icon, color]) => <div key={label} className="rounded-2xl border border-ink-100 bg-white p-5 shadow-sm"><div className="flex items-start justify-between"><span className={`grid h-10 w-10 place-items-center rounded-xl ${color}`}><Icon size={19} /></span><MoreHorizontal size={18} className="text-ink-300" /></div><p className="mt-5 text-sm text-ink-500">{label}</p><p className="mt-1 text-3xl font-extrabold tracking-tight text-ink-900">{value}</p><p className="mt-1 text-xs text-ink-400">{detail}</p></div>)}
       </section>
-      <section className="rounded-2xl border border-ink-200 bg-white p-6">
-        <h2 className="text-lg font-extrabold mb-4">Template & Paket</h2>
-        <AdminTemplateForm categories={categories} />
-        <div className="grid gap-4 md:grid-cols-2">
-          <div>
-            <h3 className="font-semibold mb-2">Template ({data.templates.length})</h3>
-            <div className="space-y-2 max-h-64 overflow-y-auto">
-              {data.templates.map((t) => (
-                <div key={t.id} className="flex items-center justify-between p-2 rounded border border-ink-100">
-                  <span>{t.name} {t.is_premium ? "(Premium)" : "(Gratis)"}</span>
-                  <span className="text-xs text-ink-400">{t.category_id}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div>
-            <h3 className="font-semibold mb-2">Paket ({plans.length})</h3>
-            <div className="space-y-2">
-              {plans.map((p) => (
-                <div key={p.id} className="flex items-center justify-between p-2 rounded border border-ink-100">
-                  <span>{p.display_name}</span>
-                  <span className="text-xs text-ink-400">Rp {p.price.toLocaleString("id-ID")}/{p.period}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+
+      <section className="grid gap-5 xl:grid-cols-[1.45fr_0.85fr]">
+        <div className="rounded-2xl border border-ink-100 bg-white p-6 shadow-sm"><div className="flex items-center justify-between"><div><p className="text-xs font-bold uppercase tracking-[0.16em] text-gold-600">Monitoring</p><h3 className="mt-1 text-lg font-extrabold text-ink-900">Performa platform</h3></div><span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">Live data</span></div><div className="mt-6 grid gap-3 sm:grid-cols-3">{[["Pengguna aktif", users.filter((item) => !item.is_suspended).length, "akun"], ["Tayang", published, "undangan"], ["Menunggu moderasi", pendingMessages.length, "pesan"]].map(([label, value, suffix]) => <div key={label} className="rounded-xl bg-[#f8f6f1] p-4"><p className="text-xs text-ink-500">{label}</p><p className="mt-2 text-2xl font-extrabold text-ink-900">{value}</p><p className="text-xs text-ink-400">{suffix}</p></div>)}</div><div className="mt-6 flex h-28 items-end gap-2 rounded-xl bg-[#f8f6f1] px-5 pb-4 pt-5">{[34, 46, 38, 62, 55, 74, 68, 88, 77, 96, 84, 100].map((height, index) => <div key={index} className="flex-1 rounded-t-md bg-gold-400/70" style={{ height: `${height}%` }} />)}</div><div className="mt-3 flex justify-between text-[11px] text-ink-400"><span>12 minggu terakhir</span><span className="inline-flex items-center gap-1 text-emerald-600"><ArrowUpRight size={13} /> Tren aktivitas</span></div></div>
+        <div className="rounded-2xl border border-ink-100 bg-white p-6 shadow-sm"><p className="text-xs font-bold uppercase tracking-[0.16em] text-gold-600">Quick actions</p><h3 className="mt-1 text-lg font-extrabold text-ink-900">Aksi cepat</h3><div className="mt-5 space-y-2">{[["#catalog", "Tambah template", "Kelola katalog undangan", Sparkles], ["#users", "Kelola pengguna", "Lihat status dan akses", Users], ["#activity", "Audit aktivitas", "Pantau perubahan admin", Activity]].map(([href, label, detail, Icon]) => <a key={href as string} href={href as string} className="group flex items-center gap-3 rounded-xl border border-ink-100 p-3 transition hover:border-gold-300 hover:bg-gold-50/40"><span className="grid h-9 w-9 place-items-center rounded-lg bg-gold-100 text-gold-700"><Icon size={17} /></span><span className="min-w-0 flex-1"><strong className="block text-sm text-ink-800">{label as string}</strong><small className="text-xs text-ink-400">{detail as string}</small></span><ArrowUpRight size={16} className="text-ink-300 transition group-hover:text-gold-600" /></a>)}</div></div>
       </section>
-      <section className="rounded-2xl border border-ink-200 bg-white p-6">
-        <h2 className="text-lg font-extrabold mb-4">Aktivitas Sistem Terbaru</h2>
-        {auditLogs.length > 0 ? (
-          <div className="space-y-2">
-            {auditLogs.map((log) => (
-              <div key={log.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-ink-100 px-3 py-2 text-sm">
-                <span><strong>{log.action}</strong> · {log.entity_type} {log.entity_id ?? ""}</span>
-                <span className="text-xs text-ink-400">{new Date(log.created_at).toLocaleString("id-ID")}</span>
-              </div>
-            ))}
-          </div>
-        ) : <p className="text-ink-400">Belum ada aktivitas.</p>}
-      </section>
-      <section className="rounded-2xl border border-ink-200 bg-white p-6">
-        <h2 className="text-lg font-extrabold mb-4">Pesan Menunggu Moderasi ({pendingMessages.length})</h2>
-        {pendingMessages.length > 0 ? (
-          <div className="space-y-2 max-h-64 overflow-y-auto">
-            {pendingMessages.map((m) => (
-              <div key={m.id} className="p-3 rounded border border-ink-100">
-                <p className="font-medium">{m.guest_name}</p>
-                <p className="text-sm text-ink-600">{m.message.slice(0, 100)}...</p>
-                <p className="text-xs text-ink-400">Undangan: {m.invitation_id}</p>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-ink-400">Tidak ada pesan menunggu</p>
-        )}
-      </section>
+
+      <section id="users" className="rounded-2xl border border-ink-100 bg-white shadow-sm"><div className="flex flex-wrap items-center justify-between gap-3 border-b border-ink-100 px-6 py-5"><div><p className="text-xs font-bold uppercase tracking-[0.16em] text-gold-600">Access control</p><h3 className="mt-1 text-lg font-extrabold text-ink-900">Manajemen pengguna</h3></div><span className="text-sm text-ink-400">{users.length} akun terdaftar</span></div><div className="overflow-x-auto"><table className="w-full min-w-[760px] text-left"><thead className="bg-[#fbfaf7] text-xs uppercase tracking-wider text-ink-400"><tr><th className="px-6 py-3 font-semibold">Pengguna</th><th className="px-4 py-3 font-semibold">Peran</th><th className="px-4 py-3 font-semibold">Plan</th><th className="px-4 py-3 font-semibold">Undangan</th><th className="px-4 py-3 font-semibold">Status</th><th className="px-6 py-3 text-right font-semibold">Aksi</th></tr></thead><tbody className="divide-y divide-ink-100">{users.map((item) => { const subscription = getSubscription(item.id); return <tr key={item.id} className="transition hover:bg-[#fcfbf8]"><td className="px-6 py-4"><p className="font-bold text-ink-800">{item.first_name} {item.last_name}</p><p className="mt-0.5 text-xs text-ink-400">{item.email}</p></td><td className="px-4 py-4"><span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${item.role === "admin" ? "bg-gold-100 text-gold-700" : "bg-ink-100 text-ink-500"}`}>{item.role}</span></td><td className="px-4 py-4 text-sm text-ink-600">{subscription?.plan_id ?? "Free"}</td><td className="px-4 py-4 text-sm font-semibold text-ink-700">{invitations.filter((invitation) => invitation.owner_id === item.id).length}</td><td className="px-4 py-4"><span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${item.is_suspended ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-700"}`}>{item.is_suspended ? "Nonaktif" : "Aktif"}</span></td><td className="px-6 py-4 text-right">{item.role === "user" && <AdminActionButton type="suspend_user" id={item.id} active={!item.is_suspended} label={item.is_suspended ? "Aktifkan" : "Nonaktifkan"} />}</td></tr>; })}</tbody></table></div></section>
+
+      <section id="invitations" className="rounded-2xl border border-ink-100 bg-white shadow-sm"><div className="flex items-center justify-between border-b border-ink-100 px-6 py-5"><div><p className="text-xs font-bold uppercase tracking-[0.16em] text-gold-600">Content oversight</p><h3 className="mt-1 text-lg font-extrabold text-ink-900">Semua undangan</h3></div><span className="text-sm text-ink-400">{invitations.length} undangan</span></div><div className="overflow-x-auto"><table className="w-full min-w-[820px] text-left"><thead className="bg-[#fbfaf7] text-xs uppercase tracking-wider text-ink-400"><tr><th className="px-6 py-3 font-semibold">Undangan</th><th className="px-4 py-3 font-semibold">Pemilik</th><th className="px-4 py-3 font-semibold">Status</th><th className="px-4 py-3 font-semibold">Tamu</th><th className="px-4 py-3 font-semibold">Tanggal acara</th><th className="px-6 py-3 text-right font-semibold">Aksi</th></tr></thead><tbody className="divide-y divide-ink-100">{invitations.map((invitation) => { const owner = data.profiles.find((item) => item.id === invitation.owner_id); return <tr key={invitation.id} className="hover:bg-[#fcfbf8]"><td className="px-6 py-4"><a href={`/${invitation.slug}`} target="_blank" className="font-bold text-gold-700 hover:underline">{invitation.title}</a><p className="text-xs text-ink-400">/{invitation.slug}</p></td><td className="px-4 py-4 text-sm text-ink-600">{owner?.first_name ?? "-"} {owner?.last_name ?? ""}</td><td className="px-4 py-4"><span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${statusTone[invitation.status]}`}>{invitation.status}</span></td><td className="px-4 py-4 text-sm text-ink-600">{data.guests.filter((guest) => guest.invitation_id === invitation.id).length}</td><td className="px-4 py-4 text-sm text-ink-500">{invitation.event_date ? new Date(invitation.event_date).toLocaleDateString("id-ID") : "-"}</td><td className="px-6 py-4 text-right"><AdminActionButton type="delete_invitation" id={invitation.id} label="Hapus" /></td></tr>; })}</tbody></table></div></section>
+
+      <section id="catalog" className="grid gap-5 xl:grid-cols-[1.15fr_0.85fr]"><div className="rounded-2xl border border-ink-100 bg-white p-6 shadow-sm"><div className="mb-5 flex items-center justify-between"><div><p className="text-xs font-bold uppercase tracking-[0.16em] text-gold-600">Design system</p><h3 className="mt-1 text-lg font-extrabold text-ink-900">Template undangan</h3></div><span className="rounded-full bg-gold-100 px-3 py-1 text-xs font-bold text-gold-700">{data.templates.length} template</span></div><AdminTemplateForm categories={categories} /><div className="mt-5 grid gap-2 sm:grid-cols-2">{data.templates.map((template) => <div key={template.id} className="flex items-center gap-3 rounded-xl border border-ink-100 p-3"><span className="grid h-9 w-9 place-items-center rounded-lg bg-[#f8f6f1] text-gold-600"><LayoutGrid size={16} /></span><span className="min-w-0 flex-1"><strong className="block truncate text-sm text-ink-800">{template.name}</strong><small className="text-xs text-ink-400">{template.is_premium ? "Premium" : "Gratis"}</small></span><span className={`h-2 w-2 rounded-full ${template.is_active ? "bg-emerald-500" : "bg-ink-300"}`} /></div>)}</div></div><div className="rounded-2xl border border-ink-100 bg-white p-6 shadow-sm"><p className="text-xs font-bold uppercase tracking-[0.16em] text-gold-600">Monetization</p><h3 className="mt-1 text-lg font-extrabold text-ink-900">Paket berlangganan</h3><div className="mt-5 space-y-2">{plans.map((plan) => <div key={plan.id} className="flex items-center justify-between rounded-xl border border-ink-100 p-3"><span><strong className="block text-sm text-ink-800">{plan.display_name}</strong><small className="text-xs text-ink-400">{plan.name}</small></span><span className="text-sm font-bold text-gold-700">Rp {plan.price.toLocaleString("id-ID")}</span></div>)}</div></div></section>
+
+      <section id="activity" className="grid gap-5 xl:grid-cols-2"><div className="rounded-2xl border border-ink-100 bg-white p-6 shadow-sm"><div className="flex items-center justify-between"><div><p className="text-xs font-bold uppercase tracking-[0.16em] text-gold-600">Security trail</p><h3 className="mt-1 text-lg font-extrabold text-ink-900">Aktivitas sistem</h3></div><Activity size={19} className="text-gold-500" /></div><div className="mt-5 space-y-3">{auditLogs.length ? auditLogs.map((log) => <div key={log.id} className="flex gap-3 border-b border-ink-100 pb-3 last:border-0"><span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-gold-500" /><div className="min-w-0"><p className="text-sm text-ink-700"><strong>{log.action}</strong> · {log.entity_type}</p><p className="mt-0.5 text-xs text-ink-400">{new Date(log.created_at).toLocaleString("id-ID")}</p></div></div>) : <p className="text-sm text-ink-400">Belum ada aktivitas.</p>}</div></div><div className="rounded-2xl border border-ink-100 bg-white p-6 shadow-sm"><div className="flex items-center justify-between"><div><p className="text-xs font-bold uppercase tracking-[0.16em] text-gold-600">Moderation queue</p><h3 className="mt-1 text-lg font-extrabold text-ink-900">Pesan menunggu</h3></div><span className="inline-flex items-center gap-1 rounded-full bg-blush-100 px-3 py-1 text-sm font-bold text-blush-700"><MessageSquare size={15} /> {pendingMessages.length}</span></div><div className="mt-5 space-y-3">{pendingMessages.length ? pendingMessages.slice(0, 5).map((message) => <div key={message.id} className="rounded-xl bg-[#f8f6f1] p-3"><p className="text-sm font-bold text-ink-800">{message.guest_name}</p><p className="mt-1 line-clamp-2 text-xs leading-5 text-ink-500">{message.message}</p></div>) : <p className="text-sm text-ink-400">Tidak ada pesan menunggu moderasi.</p>}</div></div></section>
     </div>
   );
 }
-
-
-
-
-
-

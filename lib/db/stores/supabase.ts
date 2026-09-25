@@ -50,6 +50,12 @@ const COLLECTIONS: CollectionMeta[] = [
   { col: "faqs", table: "faqs", pk: "id" },
   { col: "password_resets", table: "password_resets", pk: "token" },
   { col: "verify_tokens", table: "verify_tokens", pk: "token" },
+  { col: "user_activities", table: "user_activities", pk: "id" },
+  { col: "broadcasts", table: "broadcasts", pk: "id" },
+  { col: "blog_posts", table: "blog_posts", pk: "id" },
+  { col: "content_reports", table: "content_reports", pk: "id" },
+  { col: "system_settings", table: "system_settings", pk: "key" },
+  { col: "payment_gateways", table: "payment_gateways", pk: "id" },
 ];
 
 const ACTIVE =
@@ -92,6 +98,12 @@ function emptyData(): DBData {
     faqs: [],
     password_resets: [],
     verify_tokens: [],
+    user_activities: [],
+    broadcasts: [],
+    blog_posts: [],
+    content_reports: [],
+    system_settings: [],
+    payment_gateways: [],
   };
 }
 

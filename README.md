@@ -90,7 +90,7 @@ npm run dev
 Log yang benar:
 
 ```text
-[avelora:db] Supabase siap. Total N baris di 24 tabel.
+[avelora:db] Supabase siap. Total N baris di 30 tabel.
 ```
 
 Uji login, buka `/ahmad-sarah`, kirim RSVP, lalu cek tabel terkait di Supabase Table Editor. Jika env Supabase salah atau tabel belum dibuat, aplikasi memakai seed lokal dalam mode degraded dan menulis peringatan di terminal.
@@ -127,6 +127,7 @@ Skema relasional lengkap, index, foreign key, dan RLS ada di [`supabase/schema.s
 - Billing/operasional: `subscriptions`, `orders`, `notifications`, `audit_logs`.
 - Konten publik: `testimonials`, `faqs`.
 - Token: `password_resets`, `verify_tokens`.
+- Admin/platform: `user_activities`, `broadcasts`, `blog_posts`, `content_reports`, `system_settings`, `payment_gateways`.
 
 ## Fitur MVP
 
@@ -171,6 +172,10 @@ Pastikan schema sudah dijalankan lebih dulu, `SUPABASE_URL` dan `SUPABASE_SERVIC
 ### Database Supabase kosong
 
 Schema hanya membuat tabel. Jalankan `npm run db:export` lalu `npm run db:import` untuk memasukkan data demo.
+
+### Update fitur admin di project Supabase lama
+
+Setelah update kode yang menambah kontrol admin, jalankan ulang seluruh [`supabase/schema.sql`](supabase/schema.sql) di SQL Editor. Statement schema sudah memakai `if not exists`, `add column if not exists`, dan policy yang idempotent sehingga tidak menghapus data lama. Schema juga membuat bucket Storage `avelora-assets` dan `avelora-audio`.
 
 ### Next.js 16
 

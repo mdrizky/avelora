@@ -17,6 +17,18 @@ export function MusicRow({
   const [url, setUrl] = useState(audioUrl);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
+  const [uploading, setUploading] = useState(false);
+
+  async function upload(file: File) {
+    const body = new FormData();
+    body.set("file", file);
+    body.set("bucket", "audio");
+    setUploading(true);
+    const response = await fetch("/api/admin/upload", { method: "POST", body });
+    const data = await response.json();
+    setUploading(false);
+    if (response.ok) setUrl(data.url);
+  }
 
   async function save() {
     setBusy(true);
@@ -37,6 +49,7 @@ export function MusicRow({
         <p className="truncate text-[11px] text-ink-400">{artist}</p>
       </div>
       <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://…/audio.mp3 (lisensi AVELORA Studio)" className="field flex-1" />
+      <input type="file" accept="audio/mpeg,audio/wav,audio/ogg" disabled={uploading} onChange={(event) => { const file = event.target.files?.[0]; if (file) void upload(file); }} className="field max-w-48" />
       <button onClick={save} disabled={busy} className="btn btn-outline !px-3 !py-1.5">
         {busy ? <Loader2 size={13} className="animate-spin" /> : done ? <Check size={13} /> : "Simpan"}
       </button>

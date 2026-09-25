@@ -690,6 +690,88 @@ export function setUserSuspended(userId: string, suspended: boolean) {
   return getUserById(userId);
 }
 
+export function createCoupon(input: {
+  code: string;
+  discount_type: "percent" | "amount";
+  discount_value: number;
+  quota: number;
+  expires_at?: string;
+}) {
+  const coupon = {
+    id: `cpn-${uid()}`,
+    code: input.code.trim().toUpperCase(),
+    discount_type: input.discount_type,
+    discount_value: input.discount_value,
+    quota: input.quota,
+    used_count: 0,
+    expires_at: input.expires_at,
+    is_active: true,
+  };
+  mutate((d) => d.coupons.push(coupon));
+  return coupon;
+}
+
+export function appendUserActivity(userId: string, action: string, entityType?: string, entityId?: string, device?: string, ipAddress?: string, metadata?: Record<string, unknown>) {
+  mutate((d) => d.user_activities.unshift({ id: `ua-${uid()}`, user_id: userId, action, entity_type: entityType, entity_id: entityId, device, ip_address: ipAddress, metadata, created_at: new Date().toISOString() }));
+}
+
+export function setUserBanned(userId: string, banned: boolean) {
+  mutate((d) => { const user = d.profiles.find((profile) => profile.id === userId); if (user && user.role !== "admin") { user.is_banned = banned; user.is_suspended = banned; user.session_version = (user.session_version ?? 0) + 1; } });
+  return getUserById(userId);
+}
+
+export function incrementUserWarning(userId: string, reason?: string) {
+  mutate((d) => { const user = d.profiles.find((profile) => profile.id === userId); if (user) user.warning_count = (user.warning_count ?? 0) + 1; });
+  appendUserActivity(userId, "warning", "profile", userId, undefined, undefined, reason ? { reason } : undefined);
+  return getUserById(userId);
+}
+
+export function forceLogoutUser(userId: string) {
+  mutate((d) => { const user = d.profiles.find((profile) => profile.id === userId); if (user) user.session_version = (user.session_version ?? 0) + 1; });
+  return getUserById(userId);
+}
+
+export function createBroadcast(adminId: string, title: string, body: string, target: string) {
+  const recipients = getData().profiles.filter((profile) => profile.role === "user");
+  const broadcast = { id: `bc-${uid()}`, admin_id: adminId, title, body, target, recipient_count: recipients.length, sent_at: new Date().toISOString() };
+  mutate((d) => { d.broadcasts.unshift(broadcast); recipients.forEach((profile) => d.notifications.unshift({ id: `ntf-${uid()}`, user_id: profile.id, type: "system", title, body, read: false, created_at: broadcast.sent_at })); });
+  return broadcast;
+}
+
+export function createBlogPost(authorId: string, input: { title: string; slug: string; excerpt: string; body: string; status: "draft" | "published" }) {
+  const now = new Date().toISOString();
+  const post = { id: `blog-${uid()}`, author_id: authorId, title: input.title, slug: input.slug, excerpt: input.excerpt, body: input.body, status: input.status, published_at: input.status === "published" ? now : undefined, created_at: now, updated_at: now };
+  mutate((d) => d.blog_posts.unshift(post));
+  return post;
+}
+
+export function upsertSystemSetting(key: string, value: string, adminId: string) {
+  mutate((d) => { const setting = d.system_settings.find((item) => item.key === key); if (setting) Object.assign(setting, { value, updated_by: adminId, updated_at: new Date().toISOString() }); else d.system_settings.push({ key, value, updated_by: adminId, updated_at: new Date().toISOString() }); });
+}
+
+export function updateOrderStatus(orderId: string, status: "paid" | "refunded") {
+  mutate((d) => { const order = d.orders.find((item) => item.id === orderId); if (order) order.status = status; });
+  return getData().orders.find((order) => order.id === orderId);
+}
+
+export function createFaq(question: string, answer: string) {
+  const faq = { id: `faq-${uid()}`, question, answer, order_index: getData().faqs.length + 1, is_active: true };
+  mutate((d) => d.faqs.push(faq));
+  return faq;
+}
+
+export function createTestimonial(name: string, role: string, content: string, rating: number) {
+  const testimonial = { id: `tst-${uid()}`, name, role, content, rating, is_active: true };
+  mutate((d) => d.testimonials.push(testimonial));
+  return testimonial;
+}
+
+export function createOrder(input: { owner_id: string; plan_id: string; amount: number; payment_method?: string }) {
+  const order = { id: `ord-${uid()}`, owner_id: input.owner_id, plan_id: input.plan_id, amount: input.amount, payment_method: input.payment_method, status: "pending" as const, created_at: new Date().toISOString() };
+  mutate((d) => d.orders.unshift(order));
+  return order;
+}
+
 export function listAllMessages(status?: "pending" | "approved" | "all") {
   return getData()
     .guest_messages.filter((m) => !status || status === "all" || m.status === status)

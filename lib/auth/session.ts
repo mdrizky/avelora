@@ -24,7 +24,7 @@ function makeToken(payload: object): string {
   return `${body}.${sign(body)}`;
 }
 
-function parseToken(token: string): { user_id: string; exp: number } | null {
+function parseToken(token: string): { user_id: string; exp: number; session_version?: number; actor_id?: string } | null {
   const [body, sig] = token.split(".");
   if (!body || !sig) return null;
   const expected = sign(body);
@@ -35,6 +35,8 @@ function parseToken(token: string): { user_id: string; exp: number } | null {
     const payload = JSON.parse(Buffer.from(body, "base64url").toString()) as {
       user_id: string;
       exp: number;
+      session_version?: number;
+      actor_id?: string;
     };
     if (payload.exp < Date.now()) return null;
     return payload;
@@ -43,9 +45,9 @@ function parseToken(token: string): { user_id: string; exp: number } | null {
   }
 }
 
-export async function createSession(userId: string) {
+export async function createSession(userId: string, sessionVersion = 0) {
   const store = await cookies();
-  const token = makeToken({ user_id: userId, exp: Date.now() + SESSION_DAYS * 86400000 });
+  const token = makeToken({ user_id: userId, session_version: sessionVersion, exp: Date.now() + SESSION_DAYS * 86400000 });
   store.set(SESSION_COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
@@ -53,6 +55,12 @@ export async function createSession(userId: string) {
     path: "/",
     maxAge: SESSION_DAYS * 86400,
   });
+}
+
+export async function createImpersonatedSession(adminId: string, userId: string, sessionVersion = 0) {
+  const store = await cookies();
+  const token = makeToken({ user_id: userId, actor_id: adminId, session_version: sessionVersion, exp: Date.now() + 60 * 60 * 1000 });
+  store.set(SESSION_COOKIE, token, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: 3600 });
 }
 
 export async function destroySession() {
@@ -67,8 +75,18 @@ export async function getSessionUser(): Promise<Profile | null> {
   const payload = parseToken(token);
   if (!payload) return null;
   const user = getUserById(payload.user_id);
-  if (!user || user.is_suspended) return null;
+  if (!user || user.is_suspended || user.is_banned || (payload.session_version ?? 0) !== (user.session_version ?? 0)) return null;
   return user;
+}
+
+export async function getImpersonator(): Promise<Profile | null> {
+  const store = await cookies();
+  const token = store.get(SESSION_COOKIE)?.value;
+  if (!token) return null;
+  const payload = parseToken(token);
+  if (!payload?.actor_id) return null;
+  const actor = getUserById(payload.actor_id);
+  return actor?.role === "admin" ? actor : null;
 }
 
 export async function requireUser(): Promise<Profile> {

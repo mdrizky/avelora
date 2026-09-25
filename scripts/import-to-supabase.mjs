@@ -86,6 +86,12 @@ const TABLES = [
   { col: "faqs", pk: "id" },
   { col: "password_resets", pk: "token" },
   { col: "verify_tokens", pk: "token" },
+  { col: "user_activities", pk: "id" },
+  { col: "broadcasts", pk: "id" },
+  { col: "blog_posts", pk: "id" },
+  { col: "content_reports", pk: "id" },
+  { col: "system_settings", pk: "key" },
+  { col: "payment_gateways", pk: "id" },
 ];
 
 if (DRY_RUN) {

@@ -51,6 +51,9 @@ export default async function InvitationDetailPage({
           <Link href={`/dashboard/invitations/${id}/edit`} className="btn btn-primary">
             Edit Undangan
           </Link>
+          <Link href={`/dashboard/invitations/${id}/preview`} className="btn btn-outline" target="_blank">
+            <Eye size={14} /> Preview
+          </Link>
           {invitation.status === "published" && (
             <a href={publicUrl} target="_blank" className="btn btn-outline">
               <ExternalLink size={14} /> Lihat

@@ -130,6 +130,15 @@ export function seedDatabase(): DBData {
     ],
     password_resets: [],
     verify_tokens: [],
+    user_activities: [],
+    broadcasts: [],
+    blog_posts: [],
+    content_reports: [],
+    system_settings: [
+      { key: "brand_name", value: "AVELORA", updated_by: "u-admin", updated_at: now },
+      { key: "support_email", value: "hello@avelora.id", updated_by: "u-admin", updated_at: now },
+    ],
+    payment_gateways: [],
   };
 
   return data;

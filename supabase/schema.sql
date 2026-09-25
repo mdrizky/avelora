@@ -245,7 +245,7 @@ create table if not exists public.orders (
   plan_id         text not null references public.plans(id),
   coupon_id       text references public.coupons(id) on delete set null,
   amount          numeric(12,0) not null default 0,
-  status          text not null check (status in ('pending','paid','cancelled')),
+  status          text not null check (status in ('pending','paid','cancelled','refunded')),
   payment_method  text,
   created_at      timestamptz not null default now()
 );
@@ -315,6 +315,81 @@ create table if not exists public.avelora_meta (
 );
 
 -- ---------------------------------------------------------------------
+-- ADMIN CONTROL, CONTENT, ACTIVITY, SETTINGS
+-- ---------------------------------------------------------------------
+
+alter table public.profiles add column if not exists is_banned boolean not null default false;
+alter table public.profiles add column if not exists warning_count int not null default 0;
+alter table public.profiles add column if not exists session_version int not null default 0;
+
+create table if not exists public.user_activities (
+  id           text primary key,
+  user_id      text not null references public.profiles(id) on delete cascade,
+  action       text not null,
+  entity_type  text,
+  entity_id    text,
+  device       text,
+  ip_address   text,
+  metadata     jsonb,
+  created_at   timestamptz not null default now()
+);
+
+create table if not exists public.broadcasts (
+  id               text primary key,
+  admin_id         text not null references public.profiles(id),
+  title            text not null,
+  body             text not null,
+  target           text not null,
+  recipient_count  int not null default 0,
+  sent_at          timestamptz not null default now()
+);
+
+create table if not exists public.blog_posts (
+  id            text primary key,
+  title         text not null,
+  slug          text not null unique,
+  excerpt       text not null default '',
+  body          text not null default '',
+  status        text not null default 'draft' check (status in ('draft','published')),
+  author_id     text not null references public.profiles(id),
+  published_at  timestamptz,
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now()
+);
+
+create table if not exists public.content_reports (
+  id            text primary key,
+  reporter_id   text references public.profiles(id) on delete set null,
+  entity_type   text not null,
+  entity_id     text not null,
+  reason        text not null,
+  status        text not null default 'pending' check (status in ('pending','reviewed','dismissed')),
+  created_at    timestamptz not null default now()
+);
+
+create table if not exists public.system_settings (
+  key          text primary key,
+  value        text not null,
+  updated_by   text references public.profiles(id) on delete set null,
+  updated_at   timestamptz not null default now()
+);
+
+create table if not exists public.payment_gateways (
+  id           text primary key,
+  provider     text not null check (provider in ('midtrans','xendit')),
+  mode         text not null default 'sandbox' check (mode in ('sandbox','live')),
+  public_key   text,
+  secret_key   text,
+  is_active    boolean not null default false,
+  updated_at   timestamptz not null default now()
+);
+
+-- Storage bucket untuk asset admin. Upload dilakukan server-side via service_role.
+insert into storage.buckets (id, name, public)
+values ('avelora-assets', 'avelora-assets', true), ('avelora-audio', 'avelora-audio', true)
+on conflict (id) do update set public = excluded.public;
+
+-- ---------------------------------------------------------------------
 -- INDEX (query umum dashboard + publik)
 -- ---------------------------------------------------------------------
 
@@ -338,6 +413,10 @@ create index if not exists idx_notifications_user    on public.notifications (us
 create index if not exists idx_templates_cat         on public.templates (category_id);
 create index if not exists idx_prs_email             on public.password_resets (email);
 create index if not exists idx_vt_email              on public.verify_tokens (email);
+create index if not exists idx_user_activities_user  on public.user_activities (user_id, created_at);
+create index if not exists idx_broadcasts_sent       on public.broadcasts (sent_at);
+create index if not exists idx_blog_posts_status     on public.blog_posts (status, published_at);
+create index if not exists idx_content_reports_status on public.content_reports (status, created_at);
 
 -- ---------------------------------------------------------------------
 -- ROW LEVEL SECURITY
@@ -370,6 +449,12 @@ alter table public.faqs              enable row level security;
 alter table public.password_resets   enable row level security;
 alter table public.verify_tokens     enable row level security;
 alter table public.avelora_meta      enable row level security;
+alter table public.user_activities  enable row level security;
+alter table public.broadcasts       enable row level security;
+alter table public.blog_posts       enable row level security;
+alter table public.content_reports  enable row level security;
+alter table public.system_settings  enable row level security;
+alter table public.payment_gateways enable row level security;
 
 -- Policy dasar untuk autentikasi Supabase (jika dipakai client-side).
 -- Aplikasi tetap memakai service_role sehingga policy ini opsional.

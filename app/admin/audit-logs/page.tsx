@@ -1,0 +1,9 @@
+import { ShieldCheck } from "lucide-react";
+import { requireAdmin } from "@/lib/auth/session";
+import { getData } from "@/lib/db";
+
+export default async function AdminAuditLogsPage() {
+  await requireAdmin();
+  const logs = getData().audit_logs;
+  return <div className="space-y-6"><div><p className="text-xs font-bold uppercase tracking-[0.18em] text-gold-600">Accountability</p><h1 className="mt-2 flex items-center gap-2 text-3xl font-extrabold tracking-tight text-ink-900"><ShieldCheck size={28} className="text-gold-500" /> Audit Log</h1><p className="mt-2 text-sm text-ink-500">Jejak perubahan sensitif yang dilakukan administrator.</p></div><div className="overflow-x-auto rounded-2xl border border-ink-100 bg-white shadow-sm"><table className="w-full min-w-[720px] text-left"><thead className="bg-[#fbfaf7] text-xs uppercase tracking-wider text-ink-400"><tr><th className="px-5 py-3">Waktu</th><th className="px-4 py-3">Aksi</th><th className="px-4 py-3">Entitas</th><th className="px-4 py-3">Detail</th></tr></thead><tbody className="divide-y divide-ink-100">{logs.map((log) => <tr key={log.id}><td className="px-5 py-4 text-sm text-ink-500">{new Date(log.created_at).toLocaleString("id-ID")}</td><td className="px-4 py-4 font-semibold text-ink-800">{log.action}</td><td className="px-4 py-4 text-sm">{log.entity_type} <span className="font-mono text-xs text-ink-400">{log.entity_id ?? ""}</span></td><td className="max-w-md px-4 py-4 font-mono text-xs text-ink-500">{log.metadata ? JSON.stringify(log.metadata) : "-"}</td></tr>)}</tbody></table>{logs.length === 0 && <div className="p-12 text-center text-sm text-ink-400">Belum ada audit log.</div>}</div></div>;
+}

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Bell } from "lucide-react";
 import { DashboardMobileNav, DashboardSidebar } from "@/components/dashboard/sidebar";
-import { requireUser } from "@/lib/auth/session";
+import { getImpersonator, requireUser } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
 import { unreadNotifications } from "@/lib/db";
 import { Logo } from "@/components/logo";
@@ -11,9 +11,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const user = await requireUser();
   if (user.role === "admin") redirect("/admin");
   const unread = unreadNotifications(user.id);
+  const impersonator = await getImpersonator();
 
   return (
     <div className="flex min-h-screen bg-ivory-50">
+      {impersonator && <div className="fixed inset-x-0 top-0 z-[60] flex items-center justify-center gap-3 bg-amber-400 px-4 py-2 text-xs font-bold text-amber-950">Anda login sebagai {user.first_name} {user.last_name} (Admin Mode) <Link href="/api/auth/stop-impersonation" className="rounded-full bg-amber-950 px-3 py-1 text-white">Kembali ke Admin</Link></div>}
       <DashboardSidebar isAdmin={false} />
       <div className="flex min-w-0 flex-1 flex-col pb-16 lg:pb-0">
         <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-ink-100 bg-ivory-50/90 px-4 backdrop-blur sm:px-6">

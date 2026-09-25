@@ -11,8 +11,9 @@ export type InvitationStatus = "draft" | "published" | "expired" | "memory";
 export type RsvpStatus = "pending" | "attending" | "not_attending" | "maybe";
 export type MessageStatus = "pending" | "approved" | "rejected";
 export type PlanTier = "free" | "basic" | "premium" | "pro";
-export type OrderStatus = "pending" | "paid" | "cancelled";
+export type OrderStatus = "pending" | "paid" | "cancelled" | "refunded";
 export type DiscountType = "percent" | "amount";
+export type UserAccountStatus = "active" | "suspended" | "banned";
 
 export interface Profile {
   id: string;
@@ -27,6 +28,9 @@ export interface Profile {
   created_at: string;
   last_login_at?: string;
   is_suspended: boolean;
+  is_banned?: boolean;
+  warning_count?: number;
+  session_version?: number;
 }
 
 export interface EventCategory {
@@ -330,6 +334,68 @@ export interface Coupon {
   is_active: boolean;
 }
 
+export interface UserActivity {
+  id: string;
+  user_id: string;
+  action: string;
+  entity_type?: string;
+  entity_id?: string;
+  device?: string;
+  ip_address?: string;
+  metadata?: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface Broadcast {
+  id: string;
+  admin_id: string;
+  title: string;
+  body: string;
+  target: string;
+  recipient_count: number;
+  sent_at: string;
+}
+
+export interface BlogPost {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string;
+  body: string;
+  status: "draft" | "published";
+  author_id: string;
+  published_at?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ContentReport {
+  id: string;
+  reporter_id?: string;
+  entity_type: string;
+  entity_id: string;
+  reason: string;
+  status: "pending" | "reviewed" | "dismissed";
+  created_at: string;
+}
+
+export interface SystemSetting {
+  key: string;
+  value: string;
+  updated_by?: string;
+  updated_at: string;
+}
+
+export interface PaymentGatewayConfig {
+  id: string;
+  provider: "midtrans" | "xendit";
+  mode: "sandbox" | "live";
+  public_key?: string;
+  secret_key?: string;
+  is_active: boolean;
+  updated_at: string;
+}
+
 export interface AppNotification {
   id: string;
   user_id: string;
@@ -407,4 +473,10 @@ export interface DBData {
   faqs: Faq[];
   password_resets: PasswordResetToken[];
   verify_tokens: VerifyToken[];
+  user_activities: UserActivity[];
+  broadcasts: Broadcast[];
+  blog_posts: BlogPost[];
+  content_reports: ContentReport[];
+  system_settings: SystemSetting[];
+  payment_gateways: PaymentGatewayConfig[];
 }

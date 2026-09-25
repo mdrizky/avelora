@@ -4,6 +4,7 @@ import { z } from "zod";
 import { loginSchema } from "@/lib/services/validators";
 import { getUserByEmail } from "@/lib/db";
 import { mutate } from "@/lib/db/store";
+import { appendUserActivity } from "@/lib/db";
 import { verifyPassword } from "@/lib/auth/password";
 import { createSession } from "@/lib/auth/session";
 import { rateLimit } from "@/lib/services/rate-limit";
@@ -39,7 +40,8 @@ export async function POST(req: NextRequest) {
     const u = d.profiles.find((p) => p.id === user.id);
     if (u) u.last_login_at = new Date().toISOString();
   });
-  await createSession(user.id);
+  appendUserActivity(user.id, "login", undefined, undefined, req.headers.get("user-agent") ?? undefined, ip);
+  await createSession(user.id, user.session_version ?? 0);
   return NextResponse.json({
     ok: true,
     user: { id: user.id, email: user.email, role: user.role },

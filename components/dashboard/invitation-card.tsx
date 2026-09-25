@@ -80,6 +80,9 @@ export function InvitationCard({
           </Link>
         </div>
         <div className="flex items-center justify-between border-t border-ink-100 pt-2 text-xs text-ink-500">
+          <Link href={`/dashboard/invitations/${inv.id}/preview`} className="inline-flex items-center gap-1 font-semibold text-gold-600 hover:text-gold-700" target="_blank">
+            <ExternalLink size={13} /> Preview
+          </Link>
           <Link href={`/dashboard/invitations/${inv.id}/guests`} className="inline-flex items-center gap-1 hover:text-gold-600">
             <Users size={13} /> Tamu
           </Link>

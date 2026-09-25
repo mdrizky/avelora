@@ -53,6 +53,12 @@ function emptyData(): DBData {
     faqs: [],
     password_resets: [],
     verify_tokens: [],
+    user_activities: [],
+    broadcasts: [],
+    blog_posts: [],
+    content_reports: [],
+    system_settings: [],
+    payment_gateways: [],
   };
 }
 
