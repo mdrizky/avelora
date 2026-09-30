@@ -1,8 +1,10 @@
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth/session";
 import { getData, getInvitationById, isCheckedIn, listGuests, listTables } from "@/lib/db";
+import { requestOrigin } from "@/lib/request-origin";
 import { InvitationDetailHeader } from "@/components/dashboard/invitation-tabs";
 import { GuestsManager } from "@/components/dashboard/guests-manager";
+import { InvitationShareTools } from "@/components/dashboard/invitation-share-tools";
 
 export default async function GuestsPage({
   params,
@@ -22,12 +24,27 @@ export default async function GuestsPage({
     .guest_rsvps.filter((r) => guests.some((g) => g.id === r.guest_id))
     .forEach((r) => rsvpMap.set(r.guest_id, r.status));
 
+  const publicUrl = `${await requestOrigin()}/${invitation.slug}`;
+
   return (
     <div className="space-y-6">
       <InvitationDetailHeader id={id} slug={invitation.slug} title={invitation.title} status={invitation.status} active="guests" />
+      <InvitationShareTools
+        publicUrl={publicUrl}
+        eventTitle={invitation.title}
+        slug={invitation.slug}
+        guests={guests.map((g) => ({
+          id: g.id,
+          name: g.name,
+          phone: g.phone ?? "",
+          guest_slug: g.guest_slug,
+        }))}
+      />
       <GuestsManager
         invitationId={id}
         slug={invitation.slug}
+        invitationTitle={invitation.title}
+        publicUrl={publicUrl}
         initialGuests={guests.map((g) => ({
           id: g.id,
           name: g.name,

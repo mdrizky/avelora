@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, Playfair_Display, Great_Vibes } from "next/font/google";
+import { MotionRoot } from "@/components/motion/motion-root";
 import "./globals.css";
 
 const psJakarta = Plus_Jakarta_Sans({
@@ -55,7 +56,16 @@ export default function RootLayout({
       data-scroll-behavior="smooth"
       className={`${psJakarta.variable} ${playfair.variable} ${greatVibes.variable} antialiased`}
     >
-      <body className="min-h-screen">{children}</body>
+      <head>
+        <noscript>
+          {/* Tanpa JS, elemen `data-reveal` tidak boleh tetap transparan. */}
+          <style>{`[data-reveal]{opacity:1 !important;transform:none !important}`}</style>
+        </noscript>
+      </head>
+      <body className="min-h-screen">
+        <MotionRoot />
+        {children}
+      </body>
     </html>
   );
 }

@@ -114,11 +114,11 @@ export function seedDatabase(): DBData {
       { id: "al-2", admin_id: "u-admin", action: "publish_plan", entity_type: "plan", entity_id: "plan-pro", created_at: ago(89, 10, 30) },
     ],
     testimonials: [
-      { id: "tst-1", name: "Sari Wulandari", role: "Event Organizer", content: "Mengelola 200 tamu jadi jauh lebih mudah. QR check-in-nya keren!", rating: 5, is_active: true },
-      { id: "tst-2", name: "Bagas Ramadhan", role: "Freelancer", content: "Bikin undangan pernikahan kurang dari 20 menit. Tamu langsung bisa RSVP.", rating: 5, is_active: true },
-      { id: "tst-3", name: "Nadia Putri", role: "Ibu Rumah Tangga", content: "Tamu memuji undangan digital kami. Semuanya personal dengan nama masing-masing.", rating: 5, is_active: true },
-      { id: "tst-4", name: "Hendra Gunawan", role: "Pemilik Kafe", content: "Acara launching jadi profesional dengan tema premium. Sangat direkomendasikan.", rating: 4, is_active: true },
-      { id: "tst-5", name: "Maya Anggraini", role: "Guru", content: "Fitur buku tamu dan musik orisinalnya bagus. Anak-anak suka!", rating: 5, is_active: true },
+      { id: "tst-1", name: "Sari Wulandari", role: "Event Organizer", content: "Mengelola 200 tamu jadi jauh lebih mudah. QR check-in-nya keren!", rating: 5, is_active: true, status: "approved", event_title: "Galas Pernikahan 400 tamu", created_at: ago(28) },
+      { id: "tst-2", name: "Bagas Ramadhan", role: "Freelancer", content: "Bikin undangan pernikahan kurang dari 20 menit. Tamu langsung bisa RSVP.", rating: 5, is_active: true, status: "approved", event_title: "Pernikahan Nov 2026", created_at: ago(21) },
+      { id: "tst-3", name: "Nadia Putri", role: "Ibu Rumah Tangga", content: "Tamu memuji undangan digital kami. Semuanya personal dengan nama masing-masing.", rating: 5, is_active: true, status: "approved", event_title: "Akad nikah Des 2026", created_at: ago(17) },
+      { id: "tst-4", name: "Hendra Gunawan", role: "Pemilik Kafe", content: "Acara launching jadi profesional dengan tema premium. Sangat direkomendasikan.", rating: 4, is_active: true, status: "approved", event_title: "Grand Opening Kafe", created_at: ago(12) },
+      { id: "tst-5", name: "Maya Anggraini", role: "Guru", content: "Fitur buku tamu dan musik orisinalnya bagus. Anak-anak suka!", rating: 5, is_active: true, status: "approved", event_title: "Wisuda Anak", created_at: ago(8) },
     ],
     faqs: [
       { id: "faq-1", question: "Bagaimana cara membuat undangan digital?", answer: "Daftar lalu pilih jenis acara dan template, sesuaikan konten dengan live preview, lalu publikasikan dan bagikan link-nya.", order_index: 1, is_active: true },

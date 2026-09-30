@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, QrCode as QrIcon, Search, Sparkles } from "lucide-react";
-import { QrCode } from "./qr-code";
+import { CheckCircle2, Download, ExternalLink, QrCode as QrIcon, Search, Sparkles } from "lucide-react";
+import { QrCode, downloadQrCanvas } from "./qr-code";
 
 interface GuestLite {
   id: string;
@@ -22,12 +22,14 @@ interface CheckinLite {
 export function CheckinApp({
   invitationId,
   slug,
+  publicUrl,
   premium,
   guests,
   checkins,
 }: {
   invitationId: string;
   slug: string;
+  publicUrl: string;
   premium: boolean;
   guests: GuestLite[];
   checkins: CheckinLite[];
@@ -40,6 +42,7 @@ export function CheckinApp({
   const [selected, setSelected] = useState<GuestLite | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
+  const qrCanvasId = "guest-checkin-qr";
 
   const results = guests.filter((g) => {
     const n = q.toLowerCase();
@@ -67,7 +70,7 @@ export function CheckinApp({
     setMsg(`${g.name} telah check-in.`);
   }
 
-  const qrValue = selected ? `${window.location.origin}/${slug}?to=${selected.guest_slug}` : "";
+  const qrValue = selected ? `${publicUrl}?to=${selected.guest_slug}` : "";
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
@@ -158,12 +161,24 @@ export function CheckinApp({
               <option key={g.id} value={g.id}>{g.name} ({g.code})</option>
             ))}
           </select>
-          <div className="mt-4 flex justify-center">
+          <div className="mt-4 flex flex-col items-center gap-3">
             {selected && qrValue ? (
               <div className="rounded-xl border border-ink-200 bg-white p-3 text-center">
-                <QrCode value={qrValue} />
+                <QrCode id={qrCanvasId} value={qrValue} size={220} />
                 <p className="mt-2 text-xs font-semibold text-ink-700">{selected.name}</p>
                 <p className="text-[11px] text-ink-400">{selected.code}</p>
+                <div className="mt-3 flex items-center justify-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => downloadQrCanvas(qrCanvasId, `qr-${selected.guest_slug}`)}
+                    className="btn btn-outline !px-3 !py-1.5 !text-[11px]"
+                  >
+                    <Download size={12} /> Unduh
+                  </button>
+                  <button onClick={() => window.open(qrValue, "_blank", "noopener")} className="btn btn-outline !px-3 !py-1.5 !text-[11px]">
+                    <ExternalLink size={12} /> Buka
+                  </button>
+                </div>
               </div>
             ) : (
               <p className="py-8 text-xs text-ink-400">Pilih tamu untuk menampilkan QR.</p>

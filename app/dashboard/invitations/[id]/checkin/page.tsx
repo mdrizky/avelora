@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth/session";
 import { getEntitlements } from "@/lib/services/entitlement";
 import { getInvitationById, isCheckedIn, listCheckins, listGuests } from "@/lib/db";
+import { requestOrigin } from "@/lib/request-origin";
 import { InvitationDetailHeader } from "@/components/dashboard/invitation-tabs";
 import { CheckinApp } from "@/components/dashboard/checkin-app";
 
@@ -19,6 +20,7 @@ export default async function CheckinPage({
   const e = getEntitlements(user.id);
   const guests = listGuests(id);
   const checkins = listCheckins(id);
+  const publicUrl = `${await requestOrigin()}/${invitation.slug}`;
 
   return (
     <div className="space-y-6">
@@ -26,6 +28,7 @@ export default async function CheckinPage({
       <CheckinApp
         invitationId={id}
         slug={invitation.slug}
+        publicUrl={publicUrl}
         premium={e.features.qr_checkin === true}
         guests={guests.map((g) => ({
           id: g.id,

@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Clipboard, Loader2, Plus, Search, Trash2, Users } from "lucide-react";
+import { normalizeWaNumber } from "./whatsapp-share";
+import { Clipboard, Loader2, MessageCircle, Plus, Search, Trash2, Users } from "lucide-react";
 
 interface GuestRow {
   id: string;
@@ -19,11 +20,15 @@ interface GuestRow {
 export function GuestsManager({
   invitationId,
   slug,
+  invitationTitle,
+  publicUrl,
   initialGuests,
   tableNames,
 }: {
   invitationId: string;
   slug: string;
+  invitationTitle: string;
+  publicUrl: string;
   initialGuests: GuestRow[];
   tableNames: string[];
 }) {
@@ -92,7 +97,7 @@ export function GuestsManager({
 
   async function copyLink(g: GuestRow) {
     try {
-      await navigator.clipboard.writeText(`${location.origin}/${slug}?to=${g.guest_slug}`);
+      await navigator.clipboard.writeText(`${publicUrl}?to=${g.guest_slug}`);
       setCopied(g.id);
       setTimeout(() => setCopied(null), 1500);
     } catch {
@@ -178,6 +183,19 @@ export function GuestsManager({
                   </td>
                   <td className="py-2.5">
                     <div className="flex items-center gap-1">
+                      {normalizeWaNumber(g.phone).length >= 9 && (
+                        <a
+                          href={`https://wa.me/${normalizeWaNumber(g.phone)}?text=${encodeURIComponent(
+                            `Halo ${g.name} 🙏\n\nKamu diundang ke ${invitationTitle}.\n\nBuka undangan digital kami di sini:\n${publicUrl}?to=${g.guest_slug}`,
+                          )}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn btn-ghost !px-2 !py-1 text-[#25D366] hover:text-[#1eb95a]"
+                          title={`Kirim via WhatsApp ke ${g.name}`}
+                        >
+                          <MessageCircle size={14} />
+                        </a>
+                      )}
                       <button onClick={() => copyLink(g)} className="btn btn-ghost !px-2 !py-1" title="Salin tautan personal">
                         {copied === g.id ? <span className="text-xs text-green-600">✓</span> : <Clipboard size={14} />}
                       </button>

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { AuthShell, DemoCredentials, LoginForm } from "@/components/auth/auth-forms";
+import { AuthShell, LoginForm } from "@/components/auth/auth-forms";
 import { getSessionUser } from "@/lib/auth/session";
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string; reset?: string }> }) {
@@ -24,9 +24,6 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
         </p>
       )}
       <LoginForm next={params.next} />
-      <div className="mt-6">
-        <DemoCredentials />
-      </div>
     </AuthShell>
   );
 }

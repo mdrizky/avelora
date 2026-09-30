@@ -107,6 +107,30 @@ test("AVELORA API — alur utuh (publik, auth, reset sandi, undangan, dashboard,
     check("GET /forgot-password", (await getAsync(BASE + "/forgot-password")).status === 200);
     check("GET /reset-password", (await getAsync(BASE + "/reset-password")).status === 200);
 
+    // Galeri kategori harus bisa dibuka tanpa login (regresi theme_config kosong).
+    const cats = ["pernikahan", "aqiqah", "ulang-tahun", "wisuda"];
+    const catResults = await Promise.all(
+      cats.map(async (c) => [c, (await getAsync(BASE + `/templates?cat=${c}`)).status]),
+    );
+    check(
+      "/templates?cat= tanpa login",
+      catResults.every(([, s]) => s === 200),
+      catResults.map(([c, s]) => `${c}=${s}`).join(" "),
+    );
+
+    // Demo block tidak boleh bocor di halaman publik mana pun.
+    const publicHtml = await (await getAsync(BASE + "/")).text();
+    const loginHtml = await (await getAsync(BASE + "/login")).text();
+    const regHtml = await (await getAsync(BASE + "/register")).text();
+    const pricingHtml = await (await getAsync(BASE + "/pricing")).text();
+    const leaks = [
+      ["/", publicHtml],
+      ["/login", loginHtml],
+      ["/register", regHtml],
+      ["/pricing", pricingHtml],
+    ].filter(([, h]) => /demo@avelora|admin@avelora|demo123|admin123|Akun Demo/i.test(h));
+    check("kredensial demo tidak bocor di UI", leaks.length === 0, leaks.map(([p]) => p).join(" "));
+
     // ---------- Auth ----------
     const email = `test-${Date.now()}@test.id`;
     const password = "simpan1234";
@@ -266,6 +290,79 @@ test("AVELORA API — alur utuh (publik, auth, reset sandi, undangan, dashboard,
     check("halaman seating", (await page("seating")) === 200);
     check("halaman analitik", (await page("analytics")) === 200);
 
+    // ---------- Pratinjau undangan ----------
+    // Pratinjau harus berada di route top-level, di luar layout dashboard.
+    r = await getAsync(BASE + `/preview/${invId}`, { cookie: userCookie });
+    check("GET /preview/[id] (login)", r.status === 200, String(r.status));
+
+    r = await getAsync(BASE + `/preview/${invId}?to=${invited.guest_slug}`, { cookie: userCookie });
+    check("GET /preview/[id]?to= (personal)", r.status === 200, String(r.status));
+
+    r = await getAsync(BASE + `/preview/${invId}`);
+    check("GET /preview/[id] tanpa login -> redirect", [307, 302, 401].includes(r.status), String(r.status));
+
+    // Rute lama harus mengarahkan ke route baru.
+    r = await getAsync(BASE + `/dashboard/invitations/${invId}/preview`, { cookie: userCookie });
+    check("rute lama /preview redirect -> /preview/[id]", r.status === 307 || r.status === 302, `${r.status} ${r.headers.get("location") ?? ""}`);
+
+    // Halaman pratinjau tidak boleh memuat navigasi dashboard.
+    const previewHtml = await (
+      await getAsync(BASE + `/preview/${invId}`, { cookie: userCookie })
+    ).text();
+    check(
+      "pratinjau bebas navigasi dashboard",
+      !previewHtml.includes("Mode akun") && !previewHtml.includes("Dashboard"),
+      "",
+    );
+
+    // ---------- Testimoni / Pesan dari pengguna ----------
+    r = await getAsync(BASE + "/dashboard/testimoni", { cookie: userCookie });
+    check("GET /dashboard/testimoni", r.status === 200, String(r.status));
+
+    r = await postAsync(BASE + "/api/testimonials", {
+      name: "Uji Automation",
+      role: "Organizer",
+      event_title: "Pernikahan Uji",
+      rating: 5,
+      content: "Undangan tampil rapi dan tamu cepat RSVP. (uji testimoni)",
+    }, { cookie: userCookie });
+    const tRes = await json(r);
+    check("POST /api/testimonials", r.status === 200 || r.status === 201, `${r.status} ${tRes.error ?? ""}`);
+    const testimonialId = tRes.id ?? tRes.testimonial?.id;
+
+    r = await postAsync(BASE + "/api/testimonials", {
+      name: "Uji Automation",
+      role: "Organizer",
+      rating: 4,
+      content: "Kirim kedua saat masih pending.",
+    }, { cookie: userCookie });
+    check("testimoni kedua saat pending -> 409", r.status === 409, String(r.status));
+
+    // Belum disetujui: tidak boleh tampil di halaman depan.
+    let homeHtml = await (await getAsync(BASE + "/")).text();
+    check("testimoni pending tidak tayang di home", !homeHtml.includes("(uji testimoni)"));
+
+    r = await postAsync(BASE + "/api/testimonials", {
+      name: "X",
+      rating: 9,
+      content: "x",
+    }, { cookie: userCookie });
+    check("validasi testimoni (rating tak valid) -> 400", r.status === 400, String(r.status));
+
+    r = await postAsync(BASE + "/api/testimonials", {
+      name: "Tanpa Login",
+      rating: 5,
+      content: "harus ditolak",
+    });
+    check("POST /api/testimonials tanpa login -> 401", r.status === 401, String(r.status));
+
+    r = await postAsync(BASE + "/api/admin", {
+      type: "moderate_testimonial",
+      id: testimonialId,
+      moderation: "approved",
+    }, { cookie: userCookie });
+    check("moderasi testimoni non-admin -> 403", r.status === 403, String(r.status));
+
     // ---------- Billing / profil ----------
     r = await postAsync(BASE + "/api/billing/activate", { plan_id: "plan-premium" }, { cookie: userCookie });
     check("aktivasi premium", r.status === 200, String(r.status));
@@ -310,6 +407,45 @@ test("AVELORA API — alur utuh (publik, auth, reset sandi, undangan, dashboard,
       is_active: true,
     }, { cookie: adminCookie });
     check("admin aktifkan template", r.status === 200, String(r.status));
+
+    // ---------- Moderasi testimoni oleh admin ----------
+    r = await getAsync(BASE + "/admin/pesan", { cookie: adminCookie });
+    check("GET /admin/pesan", r.status === 200, String(r.status));
+
+    r = await getAsync(BASE + "/admin/content", { cookie: adminCookie });
+    const contentHtml = await r.text();
+    check("GET /admin/content", r.status === 200, String(r.status));
+    check(
+      "tautan moderasi dari /admin/content",
+      contentHtml.includes("/admin/pesan"),
+      "",
+    );
+
+    r = await postAsync(BASE + "/api/admin", {
+      type: "moderate_testimonial",
+      id: testimonialId,
+      moderation: "approved",
+    }, { cookie: adminCookie });
+    check("admin setujui testimoni", r.status === 200, `${r.status} ${(await json(r)).error ?? ""}`);
+
+    homeHtml = await (await getAsync(BASE + "/")).text();
+    check("testimoni approved tayang di home", homeHtml.includes("(uji testimoni)"));
+
+    // Pengguna punya notifikasi hasil moderasi.
+    r = await getAsync(BASE + "/api/notifications", { cookie: userCookie });
+    const notifs2 = await json(r);
+    const list2 = Array.isArray(notifs2.notifications) ? notifs2.notifications : (Array.isArray(notifs2) ? notifs2 : []);
+    check("notifikasi moderasi testimoni", list2.some((n) => /tayang|tidak ditampilkan/i.test(n.title ?? "")), `total=${list2.length}`);
+
+    r = await postAsync(BASE + "/api/admin", {
+      type: "moderate_testimonial",
+      id: testimonialId,
+      moderation: "rejected",
+    }, { cookie: adminCookie });
+    check("admin tolak testimoni", r.status === 200, String(r.status));
+
+    homeHtml = await (await getAsync(BASE + "/")).text();
+    check("testimoni rejected hilang dari home", !homeHtml.includes("(uji testimoni)"));
 
     assert.ok(checks.every((c) => c.startsWith("PASS")), "Ada uji yang gagal.\n" + checks.join("\n"));
   } finally {

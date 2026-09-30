@@ -1,10 +1,11 @@
 import { MapPin } from "lucide-react";
 import type { ThemeConfig } from "@/lib/db/types";
-import { FONT_CLASS, paletteStyle } from "@/lib/theme";
+import { FONT_CLASS, paletteStyle, safeTheme } from "@/lib/theme";
 
 /**
  * Pratinjau statis tema undangan (server-safe).
  * Dipakai di galeri template, builder, dan halaman preview.
+ * `theme` boleh null/kosong — palet Evergold dipakai sebagai cadangan.
  */
 export function InvitePreview({
   theme,
@@ -14,14 +15,15 @@ export function InvitePreview({
   compact = false,
   className = "",
 }: {
-  theme: ThemeConfig;
+  theme?: ThemeConfig | null;
   title?: string;
   subtitle?: string;
   dateLabel?: string;
   compact?: boolean;
   className?: string;
 }) {
-  const pal = theme.palette;
+  const t = safeTheme(theme);
+  const pal = t.palette;
   const body = (
     <div
       className="flex h-full w-full flex-col items-center justify-center gap-2.5 px-5 text-center"
@@ -30,7 +32,7 @@ export function InvitePreview({
       <span className="text-[10px] uppercase tracking-[0.32em] opacity-70" style={{ color: pal.muted }}>
         {subtitle}
       </span>
-      <h3 className={`${FONT_CLASS[theme.font]} leading-tight text-gold-500`} style={{ color: pal.primary }}>
+      <h3 className={`${FONT_CLASS[t.font]} leading-tight text-gold-500`} style={{ color: pal.primary }}>
         {title}
       </h3>
       <span className="h-px w-12 opacity-40" style={{ background: pal.accent }} />

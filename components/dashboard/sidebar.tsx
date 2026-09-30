@@ -8,6 +8,7 @@ import {
   Inbox,
   LayoutGrid,
   LogOut,
+  MessageSquareHeart,
   Settings,
   ShieldCheck,
   User,
@@ -17,6 +18,7 @@ import { Logo } from "@/components/logo";
 const userNav = [
   { href: "/dashboard", label: "Ringkasan", icon: Home },
   { href: "/dashboard/invitations", label: "Undangan", icon: LayoutGrid },
+  { href: "/dashboard/testimoni", label: "Pesan & Kesan", icon: MessageSquareHeart },
   { href: "/dashboard/notifications", label: "Notifikasi", icon: Inbox },
   { href: "/dashboard/billing", label: "Billing", icon: CreditCard },
   { href: "/dashboard/profile", label: "Profil", icon: User },
@@ -71,15 +73,15 @@ export function DashboardMobileNav({ isAdmin }: { isAdmin: boolean }) {
   const pathname = usePathname();
   const items = [...userNav, ...(isAdmin ? adminNav : []), { href: "/dashboard/settings", label: "Lainnya", icon: Settings }];
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-around border-t border-ink-100 bg-white/95 py-2 backdrop-blur lg:hidden">
-      {items.slice(0, 5).map((n) => {
+    <nav className="no-scrollbar fixed inset-x-0 bottom-0 z-40 flex items-center gap-1 overflow-x-auto border-t border-ink-100 bg-white/95 px-2 py-2 backdrop-blur lg:hidden">
+      {items.map((n) => {
         const active = pathname === n.href || pathname.startsWith(n.href + "/");
         return (
           <Link
             key={n.href}
             href={n.href}
-            className={`flex flex-col items-center gap-0.5 rounded-lg px-3 py-1 text-[11px] font-medium ${
-              active ? "text-gold-600" : "text-ink-500"
+            className={`flex shrink-0 flex-col items-center gap-0.5 rounded-xl px-3 py-1.5 text-[11px] font-medium transition-colors ${
+              active ? "bg-ivory-100 text-gold-600" : "text-ink-500"
             }`}
           >
             <n.icon size={18} />

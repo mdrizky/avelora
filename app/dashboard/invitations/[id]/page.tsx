@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { headers } from "next/headers";
 import { notFound } from "next/navigation";
-import { CalendarDays, Eye, ExternalLink, MapPin, Users } from "lucide-react";
+import { CalendarDays, Eye, ExternalLink, MapPin, MessageCircle, Users } from "lucide-react";
 import { requireUser } from "@/lib/auth/session";
 import { analyticsFor, getInvitationById, listGuests, rsvpStats } from "@/lib/db";
+import { requestOrigin } from "@/lib/request-origin";
+import { WhatsAppShare } from "@/components/dashboard/whatsapp-share";
 
 const tabs = [
   { href: "", label: "Ringkasan", exact: true },
@@ -29,11 +30,7 @@ export default async function InvitationDetailPage({
   const guests = listGuests(id);
   const stats = rsvpStats(id);
   const analytics = analyticsFor(id);
-  const h = await headers();
-  const host = h.get("x-forwarded-host") ?? h.get("host");
-  const proto = h.get("x-forwarded-proto") ?? "https";
-  const origin = host ? `${proto}://${host}` : "";
-  const publicUrl = `${origin}/${invitation.slug}`;
+  const publicUrl = `${await requestOrigin()}/${invitation.slug}`;
 
   return (
     <div className="space-y-6">
@@ -51,7 +48,7 @@ export default async function InvitationDetailPage({
           <Link href={`/dashboard/invitations/${id}/edit`} className="btn btn-primary">
             Edit Undangan
           </Link>
-          <Link href={`/dashboard/invitations/${id}/preview`} className="btn btn-outline" target="_blank">
+          <Link href={`/preview/${id}`} className="btn btn-outline" target="_blank">
             <Eye size={14} /> Preview
           </Link>
           {invitation.status === "published" && (
@@ -91,6 +88,28 @@ export default async function InvitationDetailPage({
         />
       </div>
 
+      <div className="rounded-2xl border border-ink-200 bg-white p-5">
+        <h2 className="flex items-center gap-2 text-sm font-bold text-ink-800">
+          <MessageCircle size={16} className="text-[#25D366]" /> Bagikan Undangan
+        </h2>
+        <p className="mt-1.5 max-w-2xl text-xs leading-relaxed text-ink-400">
+          Tombol hijau langsung membuka WhatsApp dengan daftar kontak kamu siap dipilih, dan
+          pesannya sudah terisi. Setiap tamu punya tautan personal sehingga namanya tampil
+          otomatis di undangan.
+        </p>
+        <div className="mt-4">
+          <WhatsAppShare
+            publicUrl={publicUrl}
+            eventTitle={invitation.title}
+            guests={guests.map((g) => ({
+              id: g.id,
+              name: g.name,
+              phone: g.phone ?? "",
+              guest_slug: g.guest_slug,
+            }))}
+          />
+        </div>
+      </div>
       <div className="grid gap-6 md:grid-cols-2">
         <div className="rounded-2xl border border-ink-200 bg-white p-5">
           <h2 className="text-sm font-bold text-ink-800">Tautan Undangan</h2>

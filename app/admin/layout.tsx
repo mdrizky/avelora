@@ -1,13 +1,15 @@
 import Link from "next/link";
-import { Activity, BarChart3, FileText, LayoutDashboard, LogOut, Megaphone, Music2, Settings, ShieldCheck, TicketPercent, Users, CreditCard, MessageSquare, LineChart, ScrollText } from "lucide-react";
+import { Activity, BarChart3, FileText, LayoutDashboard, LogOut, Megaphone, MessageSquareHeart, Music2, Settings, ShieldCheck, TicketPercent, Users, CreditCard, MessageSquare, LineChart, ScrollText } from "lucide-react";
 import { requireAdmin } from "@/lib/auth/session";
+import { countPendingTestimonials } from "@/lib/db";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   await requireAdmin();
+  const pendingPesan = countPendingTestimonials();
 
   return (
-    <main className="min-h-screen bg-[#f6f3ee] text-ink-900 lg:flex">
-      <aside className="flex w-full shrink-0 flex-col bg-night-950 px-4 py-5 text-white lg:sticky lg:top-0 lg:h-screen lg:w-64">
+    <div className="min-h-screen bg-[#f6f3ee] text-ink-900 lg:flex">
+      <aside className="flex w-full shrink-0 flex-col bg-night-950 px-4 py-5 text-white lg:sticky lg:top-0 lg:h-screen lg:w-64 lg:overflow-y-auto">
         <div className="flex items-center justify-between border-b border-white/10 pb-5">
           <Link href="/" className="flex items-center gap-3">
             <span className="grid h-10 w-10 place-items-center rounded-xl bg-gold-500 font-black text-white">A</span>
@@ -24,6 +26,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             ["/admin/orders", "Order", CreditCard],
             ["/admin/coupons", "Kupon", TicketPercent],
             ["/admin/moderation", "Moderasi", MessageSquare],
+            ["/admin/pesan", "Pesan & Kesan", MessageSquareHeart],
             ["/admin/broadcast", "Broadcast", Megaphone],
             ["/admin/content", "Konten", FileText],
             ["/admin/reports", "Reports", LineChart],
@@ -33,7 +36,13 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             ["/admin#activity", "Aktivitas", Activity],
           ].map(([href, label, Icon]) => (
             <a key={href as string} href={href as string} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-white/60 transition hover:bg-white/10 hover:text-white">
-              <Icon size={17} /> {label as string}
+              <Icon size={17} />
+              <span className="flex-1">{label as string}</span>
+              {href === "/admin/pesan" && pendingPesan > 0 && (
+                <span className="animate-pulse-soft rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-extrabold text-amber-950">
+                  {pendingPesan}
+                </span>
+              )}
             </a>
           ))}
         </nav>
@@ -45,8 +54,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           </form>
         </div>
       </aside>
-      <div className="min-w-0 flex-1">
-        <header className="flex h-20 items-center justify-between border-b border-ink-100 bg-[#f6f3ee]/90 px-5 backdrop-blur sm:px-8">
+      <div className="min-w-0 flex-1 flex flex-col min-h-screen">
+        <header className="flex h-20 shrink-0 items-center justify-between border-b border-ink-100 bg-[#f6f3ee]/90 px-5 backdrop-blur sm:px-8">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-gold-600">Avelora control center</p>
             <h1 className="mt-1 text-lg font-extrabold text-ink-900">Panel Admin</h1>
@@ -56,10 +65,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <span className="grid h-10 w-10 place-items-center rounded-full bg-gold-500 text-sm font-bold text-white">AD</span>
           </div>
         </header>
-        <div className="mx-auto w-full max-w-[1440px] px-5 py-7 sm:px-8 lg:px-10">
-          {children}
-        </div>
+        <main className="flex-1 overflow-y-auto">
+          <div className="mx-auto w-full max-w-[1440px] px-5 py-7 sm:px-8 lg:px-10">
+            {children}
+          </div>
+        </main>
       </div>
-    </main>
+    </div>
   );
 }

@@ -8,6 +8,7 @@ import type {
   Profile,
   RsvpStatus,
   Template,
+  Testimonial,
 } from "./types";
 import { getData, mutate, uid } from "./store";
 
@@ -93,8 +94,9 @@ export function listTemplates(filter?: { category_id?: string; premium?: boolean
   });
 }
 
-export function getTemplate(id: string) {
-  return getData().templates.find((t) => t.id === id);
+export function getTemplate(idOrSlug: string) {
+  const key = idOrSlug.trim().toLowerCase();
+  return getData().templates.find((t) => t.id === idOrSlug || t.slug.toLowerCase() === key);
 }
 
 export function listPlans() {
@@ -760,8 +762,146 @@ export function createFaq(question: string, answer: string) {
   return faq;
 }
 
+/* --------------------------- testimonial / kesan --------------------------- */
+
+function testimonialStatus(t: Testimonial): NonNullable<Testimonial["status"]> {
+  return t.status ?? "approved";
+}
+
+/** Testimoni yang tayang di landing page: approved + aktif. */
+export function listPublishedTestimonials(limit?: number) {
+  const rows = getData()
+    .testimonials.filter((t) => t.is_active && testimonialStatus(t) === "approved")
+    .sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""));
+  return limit ? rows.slice(0, limit) : rows;
+}
+
+/** Semua testimoni untuk review admin (pending diurutkan paling dulu). */
+export function listTestimonialsForModeration() {
+  const weight = (s: NonNullable<Testimonial["status"]>) => (s === "pending" ? 0 : s === "rejected" ? 1 : 2);
+  return [...getData().testimonials].sort((a, b) => {
+    const w = weight(testimonialStatus(a)) - weight(testimonialStatus(b));
+    if (w !== 0) return w;
+    return (b.created_at ?? "").localeCompare(a.created_at ?? "");
+  });
+}
+
+/** Pesan/kesan milik seorang pengguna (untuk dashboard user). */
+export function listTestimonialsByUser(userId: string) {
+  return getData()
+    .testimonials.filter((t) => t.user_id === userId)
+    .sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""));
+}
+
+export function countPendingTestimonials() {
+  return getData().testimonials.filter((t) => testimonialStatus(t) === "pending").length;
+}
+
+/**
+ * User mengirim pesan/kesan → status `pending`, kirim notifikasi ke semua admin.
+ * Setelah admin verifikasi (`moderateTestimonial`) tampil di landing page.
+ */
+export function submitTestimonial(input: {
+  user_id: string;
+  name: string;
+  role?: string;
+  content: string;
+  rating: number;
+  event_title?: string;
+}) {
+  const now = new Date().toISOString();
+  const testimonial: Testimonial = {
+    id: `tst-${uid()}`,
+    name: input.name.trim(),
+    role: input.role?.trim() || "Pengguna AVELORA",
+    content: input.content.trim(),
+    rating: Math.min(5, Math.max(1, Math.round(input.rating))),
+    is_active: false,
+    status: "pending",
+    user_id: input.user_id,
+    event_title: input.event_title?.trim() || undefined,
+    created_at: now,
+  };
+  mutate((d) => {
+    d.testimonials.push(testimonial);
+    for (const admin of d.profiles.filter((p) => p.role === "admin")) {
+      d.notifications.unshift({
+        id: `ntf-${uid()}`,
+        user_id: admin.id,
+        type: "system",
+        title: "Pesan & Kesan Baru Menunggu Verifikasi",
+        body: `${testimonial.name} mengirim kesan untuk ${testimonial.event_title ?? "acara"}. Tinjau di Konten.`,
+        link: "/admin/content",
+        read: false,
+        created_at: now,
+      });
+    }
+  });
+  return testimonial;
+}
+
+/** Admin memverifikasi / menolak pesan. Kabari pengirim lewat notifikasi. */
+export function moderateTestimonial(
+  id: string,
+  status: "approved" | "rejected",
+  adminId: string,
+) {
+  const now = new Date().toISOString();
+  let result: Testimonial | undefined;
+  mutate((d) => {
+    const t = d.testimonials.find((x) => x.id === id);
+    if (!t) return;
+    t.status = status;
+    t.moderated_at = now;
+    t.moderated_by = adminId;
+    if (status === "approved") {
+      t.is_active = true;
+      if (t.user_id) {
+        d.notifications.unshift({
+          id: `ntf-${uid()}`,
+          user_id: t.user_id,
+          type: "system",
+          title: "Kesan Anda sudah tayang! 🎉",
+          body: `Terima kasih! Pesan Anda sudah diverifikasi dan tampil di halaman utama AVELORA.`,
+          link: "/",
+          read: false,
+          created_at: now,
+        });
+      }
+    } else if (t.user_id) {
+      d.notifications.unshift({
+        id: `ntf-${uid()}`,
+        user_id: t.user_id,
+        type: "system",
+        title: "Pesan belum ditampilkan",
+        body: "Admin meninjau dan memutuskan pesan Anda belum ditampilkan. Terima kasih sudah berbagi.",
+        link: "/dashboard/testimoni",
+        read: false,
+        created_at: now,
+      });
+    }
+    result = t;
+  });
+  return result;
+}
+
+export function deleteTestimonial(id: string) {
+  mutate((d) => {
+    d.testimonials = d.testimonials.filter((t) => t.id !== id);
+  });
+}
+
 export function createTestimonial(name: string, role: string, content: string, rating: number) {
-  const testimonial = { id: `tst-${uid()}`, name, role, content, rating, is_active: true };
+  const testimonial = {
+    id: `tst-${uid()}`,
+    name,
+    role,
+    content,
+    rating,
+    is_active: true,
+    status: "approved" as const,
+    created_at: new Date().toISOString(),
+  };
   mutate((d) => d.testimonials.push(testimonial));
   return testimonial;
 }

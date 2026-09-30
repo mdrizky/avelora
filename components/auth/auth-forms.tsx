@@ -3,7 +3,7 @@
 import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { LoaderCircle } from "lucide-react";
+import { LoaderCircle, Mail, Lock, User, Eye, EyeOff, AlertCircle, CheckCircle } from "lucide-react";
 import { Logo } from "@/components/logo";
 
 function useSubmit() {
@@ -14,39 +14,110 @@ function useSubmit() {
 
 function SubmitButton({ loading, label }: { loading: boolean; label: string }) {
   return (
-    <button type="submit" disabled={loading} className="btn btn-primary w-full !py-3">
-      {loading && <LoaderCircle size={16} className="animate-spin" />}
-      {label}
+    <button type="submit" disabled={loading} className="btn btn-primary w-full !py-3.5 text-base relative overflow-hidden group">
+      {loading && <LoaderCircle size={18} className="animate-spin absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" />}
+      <span className={loading ? "invisible" : ""}>{label}</span>
+      <span className={loading ? "visible" : "invisible"} style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }}>
+        <LoaderCircle size={18} className="animate-spin" />
+      </span>
     </button>
   );
 }
 
 function ErrorBox({ error }: { error: string | null }) {
   if (!error) return null;
-  return <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-600">{error}</p>;
+  return (
+    <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 animate-shake">
+      <AlertCircle size={16} className="shrink-0" />
+      {error}
+    </div>
+  );
+}
+
+function InputWithIcon({ 
+  label, 
+  type = "text", 
+  name, 
+  required, 
+  autoComplete, 
+  icon: Icon, 
+  showPasswordToggle = false,
+  placeholder,
+  ...props 
+}: { 
+  label: string; 
+  type?: string; 
+  name: string; 
+  required?: boolean; 
+  autoComplete?: string; 
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+  showPasswordToggle?: boolean;
+  placeholder?: string;
+} & React.InputHTMLAttributes<HTMLInputElement>) {
+  const [showPassword, setShowPassword] = useState(false);
+  const actualType = showPasswordToggle && showPassword ? "text" : type;
+  
+  return (
+    <div className="relative">
+      <label className="label flex items-center gap-1.5">
+        <Icon size={13} className="text-ink-400" aria-hidden="true" />
+        {label}
+      </label>
+      <div className="relative mt-1.5">
+        <input
+          type={actualType}
+          name={name}
+          required={required}
+          autoComplete={autoComplete}
+          placeholder={placeholder}
+          className={`field ${showPasswordToggle ? "pr-12" : ""}`}
+          {...props}
+        />
+        {showPasswordToggle && (
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-400 hover:text-ink-700"
+            aria-label={showPassword ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"}
+          >
+            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
+        )}
+      </div>
+    </div>
+  );
 }
 
 function Shell({ children, title, subtitle, footer }: { children: React.ReactNode; title: string; subtitle: string; footer: React.ReactNode }) {
   return (
-    <main className="grid min-h-screen place-items-center bg-ivory-50 px-4 py-10">
-      <div className="w-full max-w-md">
-        <div className="mb-8 flex justify-center"><Logo /></div>
-        <div className="card-subtle rounded-3xl border border-ink-100 bg-white p-8">
-          <h1 className="text-center text-2xl font-extrabold tracking-tight text-ink-900">{title}</h1>
-          <p className="mt-1.5 text-center text-sm text-ink-500">{subtitle}</p>
-          <div className="mt-7">{children}</div>
+    <main className="relative min-h-screen flex items-center justify-center bg-ivory-50 px-4 py-10 overflow-hidden">
+      {/* Background decorative elements */}
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -top-20 -right-20 h-80 w-80 rounded-full bg-gold-500/10 blur-3xl animate-float-slow" />
+        <div className="absolute -bottom-20 -left-20 h-80 w-80 rounded-full bg-gold-500/10 blur-3xl animate-float-slow" style={{ animationDelay: '2s' }} />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[600px] w-[600px] rounded-full bg-gradient-to-r from-gold-500/5 to-transparent blur-3xl" />
+      </div>
+      
+      <div className="relative w-full max-w-md z-10">
+        <div className="mb-8 flex justify-center animate-fade-up">
+          <Logo />
         </div>
-        <div className="mt-6 text-center text-sm text-ink-500">{footer}</div>
+        <div className="card-subtle rounded-3xl border border-ink-100 bg-white/80 backdrop-blur-sm p-8 sm:p-10 animate-fade-up" style={{ animationDelay: '100ms' }}>
+          <div className="text-center mb-8">
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-ink-900">{title}</h1>
+            <p className="mt-2 text-sm text-ink-500">{subtitle}</p>
+          </div>
+          <div className="space-y-6">{children}</div>
+        </div>
+        <div className="mt-6 text-center text-sm text-ink-500 animate-fade-up" style={{ animationDelay: '200ms' }}>
+          {footer}
+        </div>
       </div>
     </main>
   );
 }
 
 export const AuthShell = Shell;
-
-function Labeled({ label }: { label: string }) {
-  return <label className="label">{label}</label>;
-}
 
 export function LoginForm({ next }: { next?: string }) {
   const { loading, error, setLoading, setError } = useSubmit();
@@ -74,18 +145,33 @@ export function LoginForm({ next }: { next?: string }) {
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-4">
+    <form onSubmit={onSubmit} className="space-y-5" noValidate>
       <ErrorBox error={error} />
-      <div>
-        <Labeled label="Alamat email" />
-        <input type="email" name="email" required autoComplete="email" className="field" />
-      </div>
-      <div>
-        <div className="flex items-center justify-between">
-          <Labeled label="Kata sandi" />
-          <Link href="/forgot-password" className="-mt-1 mb-2 text-xs font-semibold text-gold-600 hover:underline">Lupa sandi?</Link>
-        </div>
-        <input type="password" name="password" required autoComplete="current-password" className="field" />
+      <InputWithIcon
+        label="Alamat email"
+        type="email"
+        name="email"
+        required
+        autoComplete="email"
+        icon={Mail}
+        placeholder="nama@email.com"
+      />
+      <InputWithIcon
+        label="Kata sandi"
+        type="password"
+        name="password"
+        required
+        autoComplete="current-password"
+        icon={Lock}
+        showPasswordToggle
+        placeholder="••••••••"
+      />
+      <div className="flex items-center justify-between">
+        <label className="inline-flex items-center gap-1.5 cursor-pointer">
+          <input type="checkbox" className="h-4 w-4 rounded border-ink-300 text-gold-600 focus:ring-gold-500" />
+          <span className="text-sm text-ink-600">Ingat saya</span>
+        </label>
+        <Link href="/forgot-password" className="text-sm font-semibold text-gold-600 hover:underline">Lupa sandi?</Link>
       </div>
       <SubmitButton loading={loading} label="Masuk" />
     </form>
@@ -123,26 +209,44 @@ export function RegisterForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-4">
+    <form onSubmit={onSubmit} className="space-y-5" noValidate>
       <ErrorBox error={error} />
       <div className="grid grid-cols-2 gap-3">
-        <div>
-          <Labeled label="Nama depan" />
-          <input name="first_name" required className="field" />
-        </div>
-        <div>
-          <Labeled label="Nama belakang" />
-          <input name="last_name" required className="field" />
-        </div>
+        <InputWithIcon
+          label="Nama depan"
+          name="first_name"
+          required
+          icon={User}
+          placeholder="Nama depan"
+        />
+        <InputWithIcon
+          label="Nama belakang"
+          name="last_name"
+          required
+          icon={User}
+          placeholder="Nama belakang"
+        />
       </div>
-      <div>
-        <Labeled label="Alamat email" />
-        <input type="email" name="email" required autoComplete="email" className="field" />
-      </div>
-      <div>
-        <Labeled label="Kata sandi (min. 8 karakter)" />
-        <input type="password" name="password" minLength={8} required autoComplete="new-password" className="field" />
-      </div>
+      <InputWithIcon
+        label="Alamat email"
+        type="email"
+        name="email"
+        required
+        autoComplete="email"
+        icon={Mail}
+        placeholder="nama@email.com"
+      />
+      <InputWithIcon
+        label="Kata sandi (min. 8 karakter)"
+        type="password"
+        name="password"
+        minLength={8}
+        required
+        autoComplete="new-password"
+        icon={Lock}
+        showPasswordToggle
+        placeholder="••••••••"
+      />
       <SubmitButton loading={loading} label="Buat Akun Gratis" />
     </form>
   );
@@ -175,22 +279,32 @@ export function ForgotForm() {
 
   if (sent) {
     return (
-      <div className="rounded-2xl bg-sage-100 p-6 text-center">
-        <p className="font-bold text-sage-700">Check email Anda</p>
-        <p className="mt-2 text-sm text-ink-600">
-          Jika email terdaftar, tautan reset sudah dikirim. (Demo: token reset tersimpan di database lokal.)
+      <div className="space-y-4 text-center animate-fade-up">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-sage-100">
+          <CheckCircle size={32} className="text-sage-600" />
+        </div>
+        <p className="font-bold text-sage-700 text-lg">Cek Email Anda</p>
+        <p className="text-sm text-ink-600">
+          Jika email terdaftar, tautan reset sudah dikirim ke kotak masuk Anda.
+        </p>
+        <p className="text-xs text-ink-400">
+          (Mode demo: token reset tersimpan di database lokal, cek konsol server)
         </p>
       </div>
     );
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-4">
+    <form onSubmit={onSubmit} className="space-y-5" noValidate>
       <ErrorBox error={error} />
-      <div>
-        <Labeled label="Alamat email terdaftar" />
-        <input type="email" name="email" required className="field" />
-      </div>
+      <InputWithIcon
+        label="Alamat email terdaftar"
+        type="email"
+        name="email"
+        required
+        icon={Mail}
+        placeholder="nama@email.com"
+      />
       <SubmitButton loading={loading} label="Kirim Tautan Reset" />
     </form>
   );
@@ -229,33 +343,37 @@ export function ResetForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-4">
+    <form onSubmit={onSubmit} className="space-y-5" noValidate>
       <ErrorBox error={error} />
-      <div>
-        <Labeled label="Alamat email" />
-        <input type="email" name="email" defaultValue={email} required className="field" />
-      </div>
-      <div>
-        <Labeled label="Token reset" />
-        <input name="token" defaultValue={token} required className="field font-mono text-xs" placeholder="token dari email" />
-      </div>
-      <div>
-        <Labeled label="Kata sandi baru (min. 8 karakter)" />
-        <input type="password" name="password" minLength={8} required className="field" />
-      </div>
+      <InputWithIcon
+        label="Alamat email"
+        type="email"
+        name="email"
+        defaultValue={email}
+        required
+        icon={Mail}
+        placeholder="nama@email.com"
+      />
+      <InputWithIcon
+        label="Token reset"
+        name="token"
+        defaultValue={token}
+        required
+        icon={Lock}
+        placeholder="token dari email"
+        className="font-mono text-xs"
+      />
+      <InputWithIcon
+        label="Kata sandi baru (min. 8 karakter)"
+        type="password"
+        name="password"
+        minLength={8}
+        required
+        icon={Lock}
+        showPasswordToggle
+        placeholder="••••••••"
+      />
       <SubmitButton loading={loading} label="Atur Ulang Sandi" />
     </form>
-  );
-}
-
-export function DemoCredentials() {
-  return (
-    <div className="rounded-xl border border-dashed border-gold-300 bg-gold-100/40 p-4 text-xs text-ink-600">
-      <p className="font-bold text-ink-900">Akun demo</p>
-      <p className="mt-1">
-        <span className="font-mono">demo@avelora.id</span> / <span className="font-mono">demo123</span> (host)<br />
-        <span className="font-mono">admin@avelora.id</span> / <span className="font-mono">admin123</span> (admin)
-      </p>
-    </div>
   );
 }

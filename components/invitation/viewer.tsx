@@ -16,7 +16,7 @@ import {
   Send,
   Users,
 } from "lucide-react";
-import { FONT_CLASS } from "@/lib/theme";
+import { FONT_CLASS, safeTheme } from "@/lib/theme";
 
 type Props = ViewerProps;
 
@@ -331,8 +331,9 @@ export function Viewer(props: Props) {
     invitationId,
   } = props;
   const content = invitation.content_data;
-  const pal = invitation.theme_config.palette;
-  const font = invitation.theme_config.font;
+  const theme = safeTheme(invitation.theme_config);
+  const pal = theme.palette;
+  const font = theme.font;
   const themeStyle = {
     ["--inv-bg" as string]: pal.background,
     ["--inv-fg" as string]: pal.foreground,

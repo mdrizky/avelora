@@ -2,12 +2,12 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { z } from "zod";
 import { getSessionUser } from "@/lib/auth/session";
-import { appendAuditLog, appendUserActivity, createBlogPost, createBroadcast, createCoupon, createFaq, createTemplate, createTestimonial, deleteInvitation, forceLogoutUser, getData, incrementUserWarning, setMusicAudio, setUserBanned, setUserSuspended, toggleEntity, updateOrderStatus, updatePasswordHash, upsertSystemSetting } from "@/lib/db";
+import { appendAuditLog, appendUserActivity, createBlogPost, createBroadcast, createCoupon, createFaq, createTemplate, createTestimonial, deleteInvitation, deleteTestimonial, forceLogoutUser, getData, incrementUserWarning, moderateTestimonial, setMusicAudio, setUserBanned, setUserSuspended, toggleEntity, updateOrderStatus, updatePasswordHash, upsertSystemSetting } from "@/lib/db";
 import { hashPassword } from "@/lib/auth/password";
 import { createImpersonatedSession } from "@/lib/auth/session";
 
 const bodySchema = z.object({
-  type: z.enum(["toggle", "music", "create_template", "create_coupon", "create_broadcast", "create_blog", "create_faq", "create_testimonial", "update_setting", "update_order", "impersonate", "suspend_user", "ban_user", "warn_user", "force_logout", "reset_password", "delete_invitation"]),
+  type: z.enum(["toggle", "music", "create_template", "create_coupon", "create_broadcast", "create_blog", "create_faq", "create_testimonial", "moderate_testimonial", "delete_testimonial", "update_setting", "update_order", "impersonate", "suspend_user", "ban_user", "warn_user", "force_logout", "reset_password", "delete_invitation"]),
   collection: z.string().default(""),
   id: z.string().default(""),
   is_active: z.boolean().optional(),
@@ -32,6 +32,7 @@ const bodySchema = z.object({
   role: z.string().optional(),
   rating: z.number().int().min(1).max(5).optional(),
   status: z.enum(["draft", "published"]).optional(),
+  moderation: z.enum(["approved", "rejected"]).optional(),
   order_status: z.enum(["paid", "refunded"]).optional(),
 });
 
@@ -85,6 +86,19 @@ export async function POST(req: NextRequest) {
     const testimonial = createTestimonial(b.name, b.role ?? "", b.body, b.rating ?? 5);
     appendAuditLog("create-testimonial", "testimonials", testimonial.id, { admin_id: user.id });
     return NextResponse.json({ ok: true, testimonial });
+  } else if (b.type === "moderate_testimonial" && b.id && b.moderation) {
+    const testimonial = moderateTestimonial(b.id, b.moderation, user.id);
+    if (!testimonial) return NextResponse.json({ error: "Pesan tidak ditemukan" }, { status: 404 });
+    appendAuditLog(
+      b.moderation === "approved" ? "approve-testimonial" : "reject-testimonial",
+      "testimonials",
+      b.id,
+      { admin_id: user.id, user_id: testimonial.user_id },
+    );
+    return NextResponse.json({ ok: true, testimonial });
+  } else if (b.type === "delete_testimonial" && b.id) {
+    deleteTestimonial(b.id);
+    appendAuditLog("delete-testimonial", "testimonials", b.id, { admin_id: user.id });
   } else if (b.type === "update_setting" && b.setting_key && b.setting_value !== undefined) {
     upsertSystemSetting(b.setting_key, b.setting_value, user.id);
     appendAuditLog("update-setting", "system_settings", b.setting_key, { admin_id: user.id });

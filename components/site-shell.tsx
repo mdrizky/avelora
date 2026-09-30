@@ -72,10 +72,12 @@ export async function SiteFooter() {
           </ul>
         </div>
         <div>
-          <p className="text-sm font-bold">Akun Demo</p>
-          <p className="mt-3 text-xs leading-relaxed text-ink-400">
-            demo@avelora.id / demo123<br />admin@avelora.id / admin123
-          </p>
+          <p className="text-sm font-bold">Bantuan</p>
+          <ul className="mt-3 space-y-2 text-sm text-ink-500">
+            <li><Link href="/#faq" className="hover:text-gold-600">Pertanyaan umum</Link></li>
+            <li><Link href="/forgot-password" className="hover:text-gold-600">Lupa sandi</Link></li>
+            <li><Link href="/login" className="hover:text-gold-600">Masuk</Link></li>
+          </ul>
         </div>
       </div>
       <div className="border-t border-ink-100 py-5 text-center text-xs text-ink-400">

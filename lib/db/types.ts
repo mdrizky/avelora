@@ -417,6 +417,8 @@ export interface AuditLog {
   created_at: string;
 }
 
+export type TestimonialStatus = "pending" | "approved" | "rejected";
+
 export interface Testimonial {
   id: string;
   name: string;
@@ -425,6 +427,15 @@ export interface Testimonial {
   content: string;
   rating: number;
   is_active: boolean;
+  /** Status moderasi. Data lama (tanpa field) dianggap `approved`. */
+  status?: TestimonialStatus;
+  /** Pengguna pengirim (kosong = diisi manual oleh admin). */
+  user_id?: string;
+  /** Konteks acara yang dirayakan, mis. "Pernikahan 12 Des 2026". */
+  event_title?: string;
+  created_at?: string;
+  moderated_at?: string;
+  moderated_by?: string;
 }
 
 export interface Faq {

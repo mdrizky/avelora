@@ -272,14 +272,24 @@ create table if not exists public.audit_logs (
 );
 
 create table if not exists public.testimonials (
-  id          text primary key,
-  name        text not null,
-  role        text not null,
-  avatar_url  text,
-  content     text not null,
-  rating      int not null default 5 check (rating between 1 and 5),
-  is_active   boolean not null default true
+  id           text primary key,
+  name         text not null,
+  role         text not null,
+  avatar_url   text,
+  content      text not null,
+  rating       int not null default 5 check (rating between 1 and 5),
+  is_active    boolean not null default true,
+  -- Moderasi pesan/kesan yang dikirim pengguna dari dashboard.
+  status       text not null default 'approved' check (status in ('pending', 'approved', 'rejected')),
+  user_id      text references public.profiles(id) on delete set null,
+  event_title  text,
+  created_at   timestamptz not null default now(),
+  moderated_at timestamptz,
+  moderated_by text references public.profiles(id) on delete set null
 );
+
+create index if not exists testimonials_status_idx on public.testimonials(status);
+create index if not exists testimonials_user_idx on public.testimonials(user_id);
 
 create table if not exists public.faqs (
   id          text primary key,
